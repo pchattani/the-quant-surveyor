@@ -22,10 +22,10 @@ REI.map = (function () {
   function quantiles(vals, qs) { const s = vals.filter(v => v != null && isFinite(v)).sort((a, b) => a - b); return qs.map(q => s[Math.min(s.length - 1, Math.floor(q * s.length))]); }
 
   const PALETTES = {
-    psm12: ['#1d4877', '#2e6fa5', '#58a6ff', '#9ecbff', '#ffd27f', '#f0883e', '#f85149', '#b62324'],
-    med12: ['#1d4877', '#2e6fa5', '#58a6ff', '#9ecbff', '#ffd27f', '#f0883e', '#f85149', '#b62324'],
-    chg: ['#b62324', '#f85149', '#f0883e', '#ffd27f', '#cfd8dc', '#8ddc9b', '#3fb950', '#1a7f37'],
-    n12: ['#1d4877', '#2e6fa5', '#58a6ff', '#9ecbff', '#c8e1ff'],
+    psm12: ['#1d4877', '#2e6fa5', '#7d93ff', '#9ecbff', '#ffd27f', '#ffb86b', '#ff6a4d', '#b62324'],
+    med12: ['#1d4877', '#2e6fa5', '#7d93ff', '#9ecbff', '#ffd27f', '#ffb86b', '#ff6a4d', '#b62324'],
+    chg: ['#b62324', '#ff6a4d', '#ffb86b', '#ffd27f', '#cfd8dc', '#8ddc9b', '#7d93ff', '#1a7f37'],
+    n12: ['#1d4877', '#2e6fa5', '#7d93ff', '#9ecbff', '#c8e1ff'],
   };
 
   async function mount(container, cityKey, city, opts = {}) {

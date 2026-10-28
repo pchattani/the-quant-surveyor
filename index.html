@@ -2,12 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Real Estate Investing</title>
-<meta name="description" content="Global residential real estate analytics: repeat-sales indices to neighbourhood level, sold records, liquidity, valuation, and a global read.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Quant Landlord · Global residential real estate</title>
+<meta name="description" content="The Quant Landlord: global residential real estate from open sold-price registers. Repeat-sales indices to neighbourhood level for 34 cities, 43 countries of real prices, valuation, exuberance and the global factor, price tiers, liquidity and seller outcomes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-<link rel="stylesheet" href="assets/base.css">
-<link rel="stylesheet" href="assets/rei.css">
+<link rel="stylesheet" href="assets/style.css">
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"
         onerror="var s=document.createElement('script');s.src='https://unpkg.com/plotly.js-dist-min@2.35.2/plotly.min.js';document.head.appendChild(s);"></script>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"
@@ -16,22 +18,40 @@
         onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/h3-js@4.1.0/dist/h3-js.umd.js';document.head.appendChild(s);"></script>
 </head>
 <body>
-<header class="top">
-  <a class="brand" href="#/">Real Estate <span>Investing</span></a>
-  <nav id="nav">
-    <a href="#/">Cities</a>
-    <a href="#/countries">Countries</a>
-    <a href="#/methodology">Methodology</a>
-  </nav>
-  <div class="search"><input id="q" type="search" placeholder="Search area or postcode district" autocomplete="off"><div id="q-results" class="q-results"></div></div>
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="brand" href="#/">
+      <span class="mark" aria-hidden="true"></span>
+      <div>
+        <h1>The Quant <b>Landlord</b></h1>
+        <p class="sub" id="brand-sub">Global residential real estate · sold-price registers · repeat-sales to the neighbourhood</p>
+      </div>
+    </a>
+    <div class="topbar-right">
+      <div class="asof-top" id="asof-top"></div>
+      <div class="search"><input id="q" type="search" placeholder="Search city, area or postcode district" autocomplete="off" aria-label="Search"><div id="q-results" class="q-results"></div></div>
+    </div>
+  </div>
 </header>
+<nav class="tabs" aria-label="Sections">
+  <div class="tabs-inner" id="nav" role="tablist">
+    <a class="tab" role="tab" data-tab="/" href="#/">Monitor</a>
+    <a class="tab" role="tab" data-tab="/macro" href="#/macro">Macro</a>
+    <a class="tab" role="tab" data-tab="/xsection" href="#/xsection">Cross-section</a>
+    <a class="tab" role="tab" data-tab="/micro" href="#/micro">Micro</a>
+    <a class="tab" role="tab" data-tab="/cities" href="#/cities">Cities</a>
+    <a class="tab" role="tab" data-tab="/countries" href="#/countries">Countries</a>
+    <a class="tab" role="tab" data-tab="/methodology" href="#/methodology">Methodology</a>
+  </div>
+</nav>
 <main id="app"><div class="loading">Loading…</div></main>
-<footer class="foot"><span id="attribution"></span></footer>
+<footer class="foot"><div class="in"><b>The Quant Landlord</b> · open sold-price registers and official statistics; nothing here is a valuation or investment advice. <span id="attribution"></span></div></footer>
 <script src="assets/js/core.js"></script>
 <script src="assets/js/charts.js"></script>
 <script src="assets/js/map.js"></script>
 <script src="assets/js/pages.js"></script>
 <script src="assets/js/country.js"></script>
+<script src="assets/js/dashboard.js"></script>
 <script>REI.start();</script>
 </body>
 </html>

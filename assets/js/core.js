@@ -4,7 +4,7 @@ window.REI = (function () {
   const DATA = 'data/';
   // sold-record cities are served from regional data repos (their own Pages sites); meta.json carries each base
   function url(path) {
-    const m = /^cities\/([^/]+)\//.exec(path);
+    const m = /^cities\/([^/]+)\/(areas|h3|sales)\//.exec(path);
     if (m && state.meta) { const c = state.meta.cities.find(x => x.key === m[1]); if (c && c.base) return c.base + path; }
     return DATA + path;
   }

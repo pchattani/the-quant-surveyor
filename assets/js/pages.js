@@ -34,10 +34,13 @@
   }
 
   // ------------------------------------------------------------ home
-  route('/', async (app) => {
+  route('/cities', async (app) => {
     const cities = await Promise.all(REI.state.meta.cities.map(c => REI.city(c.key)));
-    app.innerHTML = `<h1>Cities</h1><p class="sub">Sold-price analytics from open registers. Repeat-sales indices to postcode-district level, honest about what is still provisional.</p>
-      <div class="cities">${cities.map(s => `<a class="city-card" href="#/city/${s.key}"><div class="n">${esc(s.name)}</div><div class="m">${s.tier === 'A1' ? 'Address-level sold records' : s.tier === 'A2' ? 'Sold records, area-level' : (s.basis && s.basis.startsWith('official') ? 'Index only (official index)' : 'Index only (asking prices)')} · through ${s.tier === 'B' ? s.data_through : fmt.month(s.data_through)}</div>
+    const regions = {};
+    for (const s of cities) (regions[s.country] = regions[s.country] || []).push(s);
+    const regionOf = k => ((REI.state.meta.cities.find(c => c.key === k) || {}).region) || '';
+    app.innerHTML = `<div class="sh"><div class="sh-main"><span class="kicker">Cities · ${cities.length}</span><h2 class="sh-title">Open a city</h2><p class="sh-sub">Sold-price analytics from open registers: repeat-sales indices to postcode district and neighbourhood, sold-record histories, tiers, liquidity and a map. Index-only cities show official or listings-based series.</p></div></div>
+      <div class="cities">${cities.slice().sort((a, b) => (regionOf(a.key) + a.country + a.name).localeCompare(regionOf(b.key) + b.country + b.name)).map(s => `<a class="city-card" href="#/city/${s.key}"><div class="n">${esc(s.name)}</div><div class="m">${s.tier === 'A1' ? 'Address-level sold records' : s.tier === 'A2' ? 'Sold records, area-level' : (s.basis && s.basis.startsWith('official') ? 'Index only (official index)' : 'Index only (asking prices)')} · through ${s.tier === 'B' ? s.data_through : fmt.month(s.data_through)}</div>
         <div class="tiles" style="margin:.5rem 0 0"><div class="tile"><div class="k">12m</div><div class="v ${s.changes.m12 >= 0 ? 'up' : 'down'}">${fmt.pct(s.changes.m12)}</div></div><div class="tile"><div class="k">${s.tier === 'B' ? (s.levels[0].name + 's') : 'Sales 12m'}</div><div class="v">${fmt.num(s.tier === 'B' ? s.counts.areas : s.counts.sales_12m)}</div></div></div></a>`).join('')}</div>`;
     document.getElementById('attribution').textContent = cities.map(c => c.attribution).filter(Boolean).join(' ');
   });
@@ -67,7 +70,7 @@
     if (s.rent) REI.charts.index(document.getElementById('c-rent'), { period: s.rent.period, value: s.rent.value, se: [] }, null, { base: s.rent.period[0], name: 'Asking rent (ARS)' });
     else {
       Promise.all(rows.slice(0, 6).map(r => REI.area(key, r.code).catch(() => null))).then(areas => {
-        const cmp = areas.filter(a => a && a.index).map((a, i) => ({ period: monthly ? a.index.period : a.index.period.map(q2m), value: a.index.value, name: a.name, color: ['#3987e5', '#d95926', '#199e70', '#c98500', '#8b949e', '#b62324'][i] }));
+        const cmp = areas.filter(a => a && a.index).map((a, i) => ({ period: monthly ? a.index.period : a.index.period.map(q2m), value: a.index.value, name: a.name, color: ['#3987e5', '#d95926', '#199e70', '#c98500', '#939bab', '#b62324'][i] }));
         REI.charts.index(document.getElementById('c-rent'), { period: monthly ? s.index.period : s.index.period.map(q2m), value: s.index.value, se: [] }, null, { base: s.base_period, name: s.name, compare: cmp });
       });
     }
@@ -89,7 +92,7 @@
       <div id="liq" style="margin-top:1rem"></div>
       <div id="tbl" style="margin-top:1rem"></div>`;
     REI.getJSON(`cities/${key}/tiers.json`).then(T => {
-      const colors = { low: '#3fb950', mid: '#58a6ff', high: '#f0883e', flat: '#58a6ff', house: '#f0883e', new: '#d29922', existing: '#8b949e' };
+      const colors = { low: '#7d93ff', mid: '#7d93ff', high: '#ffb86b', flat: '#7d93ff', house: '#ffb86b', new: '#ffc94d', existing: '#939bab' };
       const names = { low: 'Low tier (bottom third)', mid: 'Middle tier', high: 'High tier (top third)', flat: 'Flats', house: 'Houses', new: 'New build', existing: 'Existing' };
       const blocks = Object.entries(T).map(([kind, groups]) => {
         const id = `t-${kind}`;
@@ -110,30 +113,38 @@
         <p class="note">From repeat-sale pairs: median gross gain on resale, share of resales below the purchase price, and share resold within two years. Last year is provisional.</p></div>
         <div class="card"><h2>Realised return by year of purchase</h2><div id="l2" class="chart"></div><p class="note">Median annualised return on dwellings bought in that year and since resold. Recent cohorts have short, selected holding periods.</p></div></div>
         <div class="card" style="margin-top:1rem"><h2>Holding period at resale</h2><div id="l3" class="chart"></div></div>`;
-      const base = { paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { color: '#9da7b3', size: 12 }, margin: { l: 56, r: 56, t: 16, b: 40 }, hovermode: 'x unified', xaxis: { gridcolor: '#1f2630' }, yaxis: { gridcolor: '#1f2630' }, legend: { orientation: 'h', y: 1.12 } };
+      const base = { paper_bgcolor: '#14171d', plot_bgcolor: '#14171d', font: { color: '#c3c9d4', size: 12 }, margin: { l: 56, r: 56, t: 16, b: 40 }, hovermode: 'x unified', xaxis: { gridcolor: '#232833' }, yaxis: { gridcolor: '#232833' }, legend: { orientation: 'h', y: 1.12 } };
       const cfg = { displayModeBar: false, responsive: true };
+      const stacked = (top, bottom) => Object.assign({}, base, { height: 420, yaxis: Object.assign({}, base.yaxis, { domain: [0.56, 1], title: { text: top } }), yaxis2: Object.assign({}, base.yaxis, { domain: [0, 0.44], title: { text: bottom } }), xaxis2: Object.assign({}, base.xaxis, { anchor: 'y2', matches: 'x' }), xaxis: Object.assign({}, base.xaxis, { showticklabels: false }) });
       Plotly.newPlot('l1', [
-        { x: so.sale_year, y: so.median_gross_pct, type: 'bar', name: 'Median gross gain %', marker: { color: 'rgba(88,166,255,0.6)' } },
-        { x: so.sale_year, y: so.loss_share_pct, type: 'scatter', mode: 'lines+markers', name: 'Sold at a loss %', yaxis: 'y2', line: { color: '#f85149' } },
-        { x: so.sale_year, y: so.flip_share_pct, type: 'scatter', mode: 'lines+markers', name: 'Resold within 2y %', yaxis: 'y2', line: { color: '#d29922' } }],
-        Object.assign({}, base, { yaxis2: { overlaying: 'y', side: 'right', gridcolor: 'rgba(0,0,0,0)', title: { text: 'Share %' } }, yaxis: Object.assign({ title: { text: 'Gross gain %' } }, base.yaxis) }), cfg);
-      Plotly.newPlot('l2', [{ x: co.buy_year, y: co.median_annual_pct, type: 'bar', marker: { color: co.median_annual_pct.map(v => v >= 0 ? '#3fb950' : '#f85149') }, name: 'Median annualised %', hovertemplate: '%{y:.1f}% p.a.<extra></extra>' },
-        { x: co.buy_year, y: co.loss_share_pct, type: 'scatter', mode: 'lines', yaxis: 'y2', name: 'Loss share %', line: { color: '#f85149', width: 1.5 } }],
-        Object.assign({}, base, { yaxis2: { overlaying: 'y', side: 'right', gridcolor: 'rgba(0,0,0,0)', title: { text: 'Loss share %' } }, yaxis: Object.assign({ title: { text: 'Annualised %' } }, base.yaxis) }), cfg);
-      const hp = L.holding_periods, cols = ['#1d4877', '#2e6fa5', '#58a6ff', '#9ecbff', '#c8e1ff', '#ffd27f', '#f0883e', '#f85149', '#b62324'];
+        { x: so.sale_year, y: so.median_gross_pct, type: 'bar', name: 'Median gross gain %', marker: { color: 'rgba(125,147,255,0.6)' } },
+        { x: so.sale_year, y: so.loss_share_pct, type: 'scatter', mode: 'lines+markers', name: 'Sold at a loss %', xaxis: 'x2', yaxis: 'y2', line: { color: '#ff6a4d' } },
+        { x: so.sale_year, y: so.flip_share_pct, type: 'scatter', mode: 'lines+markers', name: 'Resold within 2y %', xaxis: 'x2', yaxis: 'y2', line: { color: '#ffc94d' } }],
+        stacked('Gross gain %', 'Share %'), cfg);
+      Plotly.newPlot('l2', [{ x: co.buy_year, y: co.median_annual_pct, type: 'bar', marker: { color: co.median_annual_pct.map(v => v >= 0 ? '#7d93ff' : '#ff6a4d') }, name: 'Median annualised %', hovertemplate: '%{y:.1f}% p.a.<extra></extra>' },
+        { x: co.buy_year, y: co.loss_share_pct, type: 'scatter', mode: 'lines', xaxis: 'x2', yaxis: 'y2', name: 'Loss share %', line: { color: '#ff6a4d', width: 1.5 } }],
+        stacked('Annualised %', 'Loss share %'), cfg);
+      const hp = L.holding_periods, cols = ['#1d4877', '#2e6fa5', '#7d93ff', '#9ecbff', '#c8e1ff', '#ffd27f', '#ffb86b', '#ff6a4d', '#b62324'];
       Plotly.newPlot('l3', hp.bins.map((b, j) => ({ x: hp.sale_year, y: hp.share.map(r => 100 * r[j]), type: 'bar', name: b, marker: { color: cols[j] } })),
         Object.assign({}, base, { barmode: 'stack', yaxis: Object.assign({ title: { text: 'Share of resales %' } }, base.yaxis), legend: { orientation: 'h', y: 1.15 } }), cfg);
     }).catch(() => {});
     document.getElementById('tbl').appendChild(areaTable(key, s.areas.filter(a => a.level === top), s.currency, `${s.levels[0].name}s`, s.has_area));
     if (s.levels[1]) document.getElementById('tbl').appendChild(areaTable(key, s.areas.filter(a => a.level === s.levels[1].key), s.currency, `${s.levels[1].name}s`, s.has_area));
-    const m = await REI.map.mount('map', key, s, { legend: document.getElementById('legend') });
-    document.querySelectorAll('.map-ctl button').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('.map-ctl button').forEach(x => x.classList.remove('on')); b.classList.add('on'); m.setMetric(b.dataset.m); }));
+    try {
+      const m = await REI.map.mount('map', key, s, { legend: document.getElementById('legend') });
+      document.querySelectorAll('.map-ctl button').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('.map-ctl button').forEach(x => x.classList.remove('on')); b.classList.add('on'); m.setMetric(b.dataset.m); }));
+    } catch (e) { const mp = document.getElementById('map'); if (mp) mp.innerHTML = '<p class="empty">Neighbourhood layers for this city are not published yet.</p>'; }
     document.getElementById('attribution').textContent = s.attribution;
   });
 
   // ------------------------------------------------------------ area
   route('/area/:key/:code', async (app, { key, code }) => {
-    const [s, a] = await Promise.all([REI.city(key), REI.area(key, code)]);
+    const s = await REI.city(key);
+    let a;
+    try { a = await REI.area(key, code); } catch (e) {
+      app.innerHTML = `<div class="crumbs"><a href="#/cities">Cities</a> › <a href="#/city/${key}">${esc(s.name)}</a> › ${esc(code)}</div><div class="card"><h2>${esc(code)}</h2><p class="note">Neighbourhood pages for ${esc(s.name)} are built but not yet published to the public data repository. The city page, tiers, liquidity and the dashboard are live.</p></div>`;
+      document.getElementById('attribution').textContent = s.attribution; return;
+    }
     if (s.tier === 'B') {
       app.innerHTML = `<div class="crumbs"><a href="#/">Cities</a> › <a href="#/city/${key}">${esc(s.name)}</a> › ${esc(a.name)}</div>
         <div class="city-head"><h1>${esc(a.name)}</h1><span class="asof"><span class="badge">${esc(a.parent ? a.parent.name : '')}</span><span class="badge prov">${esc(a.basis || s.basis)}</span></span></div>
