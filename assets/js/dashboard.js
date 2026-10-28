@@ -1,4 +1,4 @@
-/* The Quant Landlord dashboard: Monitor, Macro, Cross-section and Micro panels built from data/dashboard.json,
+/* The Quant Surveyor dashboard: Monitor, Macro, Cross-section and Micro panels built from data/dashboard.json,
    plus the section-nav highlight. Templating is innerHTML strings (the headless check runs the same code in a
    DOM stub), charts are Plotly with one dark theme, one y-axis per chart, colours fixed per entity. */
 (function () {

@@ -1,6 +1,6 @@
-# The Quant Landlord (site)
+# The Quant Surveyor (site)
 
-The Quant Landlord: a dashboard of global residential real estate built from open sold-price registers and official statistics. This repository holds
+The Quant Surveyor: a dashboard of global residential real estate built from open sold-price registers and official statistics. This repository holds
 only the published pages, `meta.json`, the country layer and the index-only cities; sold-record city
 payloads are served from regional data repositories (`rei-data-london`, `rei-data-uk`, `rei-data-europe`,
 `rei-data-americas`, `rei-data-apac`). The engine that produces them is private.
