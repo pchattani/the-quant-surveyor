@@ -49,24 +49,25 @@
   const q2m = p => p.replace(/Q(\d)$/, (m, q) => `-${(q * 3).toString().padStart(2, '0')}`);
   function tierB(app, key, s) {
     const am = s.area_metric || { key: 'psm12', label: 'Asking USD/m²', change_key: 'psm12_chg', change_label: 'vs year ago' };
-    const fmtMetric = v => v == null ? '–' : am.key === 'psm12' ? '$' + Math.round(v).toLocaleString('en-US') : v.toFixed(1);
-    const rows = s.areas.slice().sort((a, b) => (b[am.key] || 0) - (a[am.key] || 0));
+    const fmtMetric = v => v == null ? '–' : am.format === 'money' ? fmt.money(v, s.currency) : am.key === 'psm12' ? '$' + Math.round(v).toLocaleString('en-US') : v.toFixed(1);
     const lv = s.levels[0];
+    const plural = n => /[^aeiou]y$/.test(n) ? n.slice(0, -1) + 'ies' : n + 's';
+    const rows = s.areas.filter(r => !r.level || r.level === lv.key).sort((a, b) => (b[am.key] || 0) - (a[am.key] || 0));
     const monthly = s.freq === 'M';
     app.innerHTML = `<div class="crumbs"><a href="#/">Cities</a> › ${esc(s.name)}</div>
       <div class="city-head"><h1>${esc(s.name)}</h1><span class="asof"><span class="badge prov">Index-only: ${esc(s.basis)}</span><span class="badge">Data through ${s.data_through}</span><span class="badge">Published ${s.as_of}</span></span></div>
-      <div class="tiles">${[['1 month', s.changes.m1], ['3 months', s.changes.m3], ['12 months', s.changes.m12], ['5 years', s.changes.y5], ['10 years', s.changes.y10]].filter(([k, v]) => v !== undefined && !(k === '1 month' && v == null)).map(([k, v]) => `<div class="tile"><div class="k">${k}</div><div class="v ${v == null ? '' : v >= 0 ? 'up' : 'down'}">${fmt.pct(v)}</div><div class="s">${esc(s.basis)}</div></div>`).join('')}
-        <div class="tile"><div class="k">${esc(lv.name)}s</div><div class="v">${s.counts.areas}</div></div></div>
-      <div class="grid2"><div class="card"><h2>${esc(s.basis)} (${s.base_period} = 100)</h2><div id="c-index" class="chart"></div></div>
-        <div class="card"><h2>${s.rent ? 'Asking rent (ARS per month), fixed-weight index' : (lv.name + 's vs ' + esc(s.name))}</h2><div id="c-rent" class="chart"></div></div></div>
-      <div class="card" style="margin-top:1rem"><h2>${esc(lv.name)}s, latest</h2><table class="t"><thead><tr><th>${esc(lv.name)}</th>${rows.some(r => r.parent) ? '<th>Parent</th>' : ''}<th>${esc(am.label)}</th><th>${esc(am.change_label)}</th></tr></thead><tbody>
+      <div class="tiles">${[['1 month', s.changes.m1], ['3 months', s.changes.m3], ['12 months', s.changes.m12], ['5 years', s.changes.y5], ['10 years', s.changes.y10]].filter(([k, v]) => v !== undefined && !(k === '1 month' && v == null)).map(([k, v]) => `<div class="tile"><div class="k">${k}</div><div class="v ${v == null ? '' : v >= 0 ? 'up' : 'down'}">${fmt.pct(v)}</div><div class="s">${s.freq === 'M' ? 'to latest month' : 'to latest quarter'}</div></div>`).join('')}
+        <div class="tile"><div class="k">${esc(plural(lv.name))}</div><div class="v">${lv.count != null ? lv.count : s.counts.areas}</div></div></div>
+      <div class="grid2"><div class="card"><h2>${esc(s.name)}: index (${s.base_period} = 100)</h2><div id="c-index" class="chart"></div><p class="note">${esc(s.basis)}</p></div>
+        <div class="card"><h2>${s.rent ? 'Asking rent (ARS per month), fixed-weight index' : (plural(lv.name) + ' vs ' + esc(s.name) + ', rebased')}</h2><div id="c-rent" class="chart"></div></div></div>
+      <div class="card" style="margin-top:1rem"><h2>${esc(plural(lv.name))}, latest</h2><table class="t"><thead><tr><th>${esc(lv.name)}</th>${rows.some(r => r.parent) ? '<th>Parent</th>' : ''}<th>${esc(am.label)}</th><th>${esc(am.change_label)}</th></tr></thead><tbody>
         ${rows.map(r => `<tr><td><a href="#/area/${key}/${encodeURIComponent(r.code)}">${esc(r.name)}</a></td>${rows.some(x => x.parent) ? `<td>${esc(r.parent || '')}</td>` : ''}<td>${fmtMetric(r[am.key])}</td><td class="${fmt.cls(r[am.change_key])}">${fmt.pct(r[am.change_key])}</td></tr>`).join('')}</tbody></table>
-        <p class="note">${s.key === 'buenos_aires' ? 'Asking prices from listings, not sold prices: there is no open deed-level register for Buenos Aires. Prices are quoted in US dollars; rents in pesos under high inflation, so the rent index is nominal.' : 'An official index, not a register of sales: no sold records, no map. See the Methodology page for what an index-only city can and cannot show.'}</p></div>
+        ${s.notes ? `<p class="note">${esc(s.notes)}</p>` : ''}<p class="note">${s.key === 'buenos_aires' ? 'Asking prices from listings, not sold prices: there is no open deed-level register for Buenos Aires. Prices are quoted in US dollars; rents in pesos under high inflation, so the rent index is nominal.' : 'An official index, not a register of sales: no sold records, no map. See the Methodology page for what an index-only city can and cannot show.'}</p></div>
       ${s.volume ? `<div class="card" style="margin-top:1rem"><h2>Deeds registered per month</h2><div id="c-vol" class="chart"></div><p class="note">${esc(s.volume.basis || '')}. Counts only: the register publishes no prices.</p></div>` : ''}
       ${s.long_index ? `<div class="card" style="margin-top:1rem"><h2>Long history, quarterly (${s.long_index.base_period} = 100)</h2><div id="c-long" class="chart"></div><p class="note">${esc(s.long_index.basis || '')}</p></div>` : ''}`;
     if (s.volume) REI.charts.volume(document.getElementById('c-vol'), s.volume, s.currency, null);
     if (s.long_index) REI.charts.index(document.getElementById('c-long'), { period: s.long_index.period.map(q2m), value: s.long_index.value, se: [] }, null, { base: s.long_index.base_period, name: s.name });
-    REI.charts.index(document.getElementById('c-index'), { period: monthly ? s.index.period : s.index.period.map(q2m), value: s.index.value, se: [] }, null, { base: s.base_period, name: s.basis });
+    REI.charts.index(document.getElementById('c-index'), { period: monthly ? s.index.period : s.index.period.map(q2m), value: s.index.value, se: [] }, null, { base: s.base_period, name: s.name });
     if (s.rent) REI.charts.index(document.getElementById('c-rent'), { period: s.rent.period, value: s.rent.value, se: [] }, null, { base: s.rent.period[0], name: 'Asking rent (ARS)' });
     else {
       Promise.all(rows.slice(0, 6).map(r => REI.area(key, r.code).catch(() => null))).then(areas => {
@@ -147,10 +148,11 @@
     }
     if (s.tier === 'B') {
       app.innerHTML = `<div class="crumbs"><a href="#/">Cities</a> › <a href="#/city/${key}">${esc(s.name)}</a> › ${esc(a.name)}</div>
-        <div class="city-head"><h1>${esc(a.name)}</h1><span class="asof"><span class="badge">${esc(a.parent ? a.parent.name : '')}</span><span class="badge prov">${esc(a.basis || s.basis)}</span></span></div>
-        <div class="tiles">${a.psm12 != null ? `<div class="tile"><div class="k">Asking USD/m²</div><div class="v">$${Math.round(a.psm12).toLocaleString('en-US')}</div><div class="s">latest quarter</div></div>` : ''}
+        <div class="city-head"><h1>${esc(a.name)}</h1><span class="asof">${a.parent ? `<span class="badge">${esc(a.parent.name)}</span>` : ''}<span class="badge prov">${esc(a.basis || s.basis)}</span></span></div>
+        <div class="tiles">${a.psm12 != null ? `<div class="tile"><div class="k">${esc((s.area_metric || {}).label || 'Asking USD/m²')}</div><div class="v">${(s.area_metric || {}).format === 'money' ? fmt.money(a.psm12, s.currency) : '$' + Math.round(a.psm12).toLocaleString('en-US')}</div><div class="s">latest ${s.freq === 'M' ? 'month' : 'quarter'}</div></div>` : ''}
           ${a.changes ? [['12 months', a.changes.m12], ['5 years', a.changes.y5]].map(([k, v]) => `<div class="tile"><div class="k">${k}</div><div class="v ${v == null ? '' : v >= 0 ? 'up' : 'down'}">${fmt.pct(v)}</div></div>`).join('') : ''}</div>
-        <div class="card"><h2>${a.psm12 != null ? 'Asking price per m²' : 'Index'} vs ${esc(s.name)}</h2><div id="a-index" class="chart"></div></div>`;
+        <div class="card"><h2>${a.psm12 != null ? ((s.area_metric || {}).label || 'Asking price per m²') : 'Index'} vs ${esc(s.name)}, rebased</h2><div id="a-index" class="chart"></div></div>
+        ${a.children && a.children.length ? `<div class="card" style="margin-top:1rem"><h2>Within this area</h2><table class="t"><thead><tr><th>Area</th><th>${esc((s.area_metric || {}).label || 'Latest')}</th><th>12m</th></tr></thead><tbody>${a.children.slice().sort((x, y) => (y.idx_m12 || 0) - (x.idx_m12 || 0)).map(c => `<tr><td><a href="#/area/${key}/${encodeURIComponent(c.code)}">${esc(c.name)}</a></td><td>${(s.area_metric || {}).format === 'money' ? fmt.money(c.psm12, s.currency) : (c.idx_value == null ? '–' : c.idx_value.toFixed(1))}</td><td class="${fmt.cls(c.idx_m12)}">${fmt.pct(c.idx_m12)}</td></tr>`).join('')}</tbody></table></div>` : ''}`;
       const mon = s.freq === 'M';
       if (a.index) REI.charts.index(document.getElementById('a-index'), { period: mon ? a.index.period : a.index.period.map(q2m), value: a.index.value, se: [] }, null, { base: a.index.period[0], name: a.name, compare: [{ period: mon ? s.index.period : s.index.period.map(q2m), value: s.index.value, name: s.name }] });
       document.getElementById('attribution').textContent = s.attribution;
@@ -159,7 +161,7 @@
     const crumbs = [`<a href="#/">Cities</a>`, `<a href="#/city/${key}">${esc(s.name)}</a>`];
     if (a.parent) crumbs.push(`<a href="#/area/${key}/${encodeURIComponent(a.parent.code)}">${esc(a.parent.name)}</a>`);
     const lvName = (s.levels.find(l => l.key === a.level) || {}).name || a.level;
-    const shrink = a.index ? a.index.shrink[a.index.period.indexOf(s.data_through)] : null;
+    const shrink = a.index ? a.index.shrink[a.index.period.indexOf(s.index_through || s.data_through)] : null;
     app.innerHTML = `<div class="crumbs">${crumbs.join(' › ')} › ${esc(a.name)}</div>
       <div class="city-head"><h1>${esc(a.name)}${a.name !== a.code ? ` <span class="mute mono">${esc(a.code)}</span>` : ''}</h1><span class="asof"><span class="badge">${esc(lvName)}</span>${banner(s)}</span></div>
       ${a.changes ? tiles(a.changes, [`<div class="tile"><div class="k">Sales 12m</div><div class="v">${fmt.num(a.n12)}</div><div class="s">median ${fmt.money(a.med12, s.currency)}</div></div>`,

@@ -4,7 +4,7 @@ window.REI = (function () {
   const DATA = 'data/';
   // sold-record cities are served from regional data repos (their own Pages sites); meta.json carries each base
   function url(path) {
-    const m = /^cities\/([^/]+)\/(areas|h3|sales)\//.exec(path);
+    const m = /^cities\/([^/]+)\/sales\//.exec(path);   // only sold-record shards live in the regional data repos
     if (m && state.meta) { const c = state.meta.cities.find(x => x.key === m[1]); if (c && c.base) return c.base + path; }
     return DATA + path;
   }
@@ -28,7 +28,7 @@ window.REI = (function () {
 
   const memo = (bucket, key, fn) => state[bucket][key] || (state[bucket][key] = fn().catch(e => { delete state[bucket][key]; throw e; }));
   const city = k => memo('cities', k, () => getJSON(`cities/${k}/summary.json`));
-  const area = (k, code) => memo('areas', `${k}/${code}`, () => getJSON(`cities/${k}/areas/${safe(code)}.json`));
+  const area = (k, code) => memo('areas', `${k}/${code}`, () => getGz(`cities/${k}/areas/${safe(code)}.json.gz`));
   const h3layer = (k, res) => memo('h3', `${k}/${res}`, () => getJSON(`cities/${k}/h3/r${res}.json`));
   const salesIndex = k => memo('sales', `${k}/index`, () => getJSON(`cities/${k}/sales/index.json`));
   const salesShard = (k, dist, year) => memo('sales', `${k}/${dist}/${year}`, () => getGz(`cities/${k}/sales/${safe(dist)}/${year}.json.gz`));
