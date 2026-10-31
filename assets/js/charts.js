@@ -1,11 +1,11 @@
 /* Plotly wrappers with one dark theme. Every chart shows the as-of / provisional banner via the caller. */
 REI.charts = (function () {
   const base = {
-    paper_bgcolor: '#14171d', plot_bgcolor: '#14171d', font: { family: 'Barlow, system-ui, sans-serif', color: '#c3c9d4', size: 12 },
-    margin: { l: 56, r: 16, t: 24, b: 44 }, hovermode: 'x unified', colorway: ['#7d93ff', '#ff6a4d', '#5ec8f0', '#c39be8', '#8fd16a', '#8fdcc8', '#d4ff3a'],
-    hoverlabel: { bgcolor: '#1c2028', bordercolor: '#3a4150', font: { color: '#f3f5f8', family: 'Barlow Condensed, sans-serif', size: 12 } },
-    xaxis: { gridcolor: '#232833', zeroline: false, linecolor: '#596171', tickfont: { color: '#939bab' }, title: { text: '' } },
-    yaxis: { gridcolor: '#232833', zeroline: false, linecolor: '#596171', tickfont: { color: '#939bab' }, title: { text: '' } },
+    paper_bgcolor: '#0d1526', plot_bgcolor: '#0d1526', font: { family: 'Barlow, system-ui, sans-serif', color: '#c0c9da', size: 12 },
+    margin: { l: 56, r: 16, t: 24, b: 44 }, hovermode: 'x unified', colorway: ['#7d93ff', '#ff6a4d', '#5ec8f0', '#c39be8', '#8fd16a', '#8fdcc8', '#ffb224'],
+    hoverlabel: { bgcolor: '#132038', bordercolor: '#3b4a6b', font: { color: '#f2f5fb', family: 'Barlow Condensed, sans-serif', size: 12 } },
+    xaxis: { gridcolor: '#1a2641', zeroline: false, linecolor: '#3a4b70', tickfont: { color: '#8e9ab0', family: 'IBM Plex Mono, ui-monospace, monospace', size: 10.5 }, title: { text: '' } },
+    yaxis: { gridcolor: '#1a2641', zeroline: false, linecolor: '#3a4b70', tickfont: { color: '#8e9ab0', family: 'IBM Plex Mono, ui-monospace, monospace', size: 10.5 }, title: { text: '' } },
     legend: { orientation: 'h', y: 1.12, x: 0 },
   };
   const cfg = { displayModeBar: false, responsive: true };
@@ -28,7 +28,7 @@ REI.charts = (function () {
       { x: p.slice(0, k + 1), y: v.slice(0, k + 1), type: 'scatter', mode: 'lines', line: { color: '#7d93ff', width: 2 }, name: opts.name || 'Repeat-sales index', hovertemplate: '%{y:.1f}<extra></extra>' },
     ];
     if (k < p.length - 1) traces.push({ x: p.slice(k), y: v.slice(k), type: 'scatter', mode: 'lines', line: { color: '#ffc94d', width: 2, dash: 'dot' }, name: 'Provisional (register incomplete)', hovertemplate: '%{y:.1f} (prov.)<extra></extra>' });
-    if (opts.compare) for (const c of opts.compare) traces.push({ x: c.period, y: c.value, type: 'scatter', mode: 'lines', line: { color: c.color || '#939bab', width: 1.5 }, name: c.name, hovertemplate: '%{y:.1f}<extra></extra>' });
+    if (opts.compare) for (const c of opts.compare) traces.push({ x: c.period, y: c.value, type: 'scatter', mode: 'lines', line: { color: c.color || '#8e9ab0', width: 1.5 }, name: c.name, hovertemplate: '%{y:.1f}<extra></extra>' });
     Plotly.newPlot(div, traces, merge(base, { yaxis: { title: { text: `Index (${opts.base || ''} = 100)` } }, xaxis: { type: 'date' } }), cfg);
   }
 

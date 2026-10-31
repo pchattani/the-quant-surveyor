@@ -71,7 +71,7 @@
     if (s.rent) REI.charts.index(document.getElementById('c-rent'), { period: s.rent.period, value: s.rent.value, se: [] }, null, { base: s.rent.period[0], name: 'Asking rent (ARS)' });
     else {
       Promise.all(rows.slice(0, 6).map(r => REI.area(key, r.code).catch(() => null))).then(areas => {
-        const cmp = areas.filter(a => a && a.index).map((a, i) => ({ period: monthly ? a.index.period : a.index.period.map(q2m), value: a.index.value, name: a.name, color: ['#3987e5', '#d95926', '#199e70', '#c98500', '#939bab', '#b62324'][i] }));
+        const cmp = areas.filter(a => a && a.index).map((a, i) => ({ period: monthly ? a.index.period : a.index.period.map(q2m), value: a.index.value, name: a.name, color: ['#3987e5', '#d95926', '#199e70', '#c98500', '#8e9ab0', '#b62324'][i] }));
         REI.charts.index(document.getElementById('c-rent'), { period: monthly ? s.index.period : s.index.period.map(q2m), value: s.index.value, se: [] }, null, { base: s.base_period, name: s.name, compare: cmp });
       });
     }
@@ -93,7 +93,7 @@
       <div id="liq" style="margin-top:1rem"></div>
       <div id="tbl" style="margin-top:1rem"></div>`;
     REI.getJSON(`cities/${key}/tiers.json`).then(T => {
-      const colors = { low: '#7d93ff', mid: '#7d93ff', high: '#ffb86b', flat: '#7d93ff', house: '#ffb86b', new: '#ffc94d', existing: '#939bab' };
+      const colors = { low: '#7d93ff', mid: '#7d93ff', high: '#ffb86b', flat: '#7d93ff', house: '#ffb86b', new: '#ffc94d', existing: '#8e9ab0' };
       const names = { low: 'Low tier (bottom third)', mid: 'Middle tier', high: 'High tier (top third)', flat: 'Flats', house: 'Houses', new: 'New build', existing: 'Existing' };
       const blocks = Object.entries(T).map(([kind, groups]) => {
         const id = `t-${kind}`;
@@ -114,7 +114,7 @@
         <p class="note">From repeat-sale pairs: median gross gain on resale, share of resales below the purchase price, and share resold within two years. Last year is provisional.</p></div>
         <div class="card"><h2>Realised return by year of purchase</h2><div id="l2" class="chart"></div><p class="note">Median annualised return on dwellings bought in that year and since resold. Recent cohorts have short, selected holding periods.</p></div></div>
         <div class="card" style="margin-top:1rem"><h2>Holding period at resale</h2><div id="l3" class="chart"></div></div>`;
-      const base = { paper_bgcolor: '#14171d', plot_bgcolor: '#14171d', font: { color: '#c3c9d4', size: 12 }, margin: { l: 56, r: 56, t: 16, b: 40 }, hovermode: 'x unified', xaxis: { gridcolor: '#232833' }, yaxis: { gridcolor: '#232833' }, legend: { orientation: 'h', y: 1.12 } };
+      const base = { paper_bgcolor: '#0d1526', plot_bgcolor: '#0d1526', font: { color: '#c0c9da', size: 12 }, margin: { l: 56, r: 56, t: 16, b: 40 }, hovermode: 'x unified', xaxis: { gridcolor: '#1a2641' }, yaxis: { gridcolor: '#1a2641' }, legend: { orientation: 'h', y: 1.12 } };
       const cfg = { displayModeBar: false, responsive: true };
       const stacked = (top, bottom) => Object.assign({}, base, { height: 420, yaxis: Object.assign({}, base.yaxis, { domain: [0.56, 1], title: { text: top } }), yaxis2: Object.assign({}, base.yaxis, { domain: [0, 0.44], title: { text: bottom } }), xaxis2: Object.assign({}, base.xaxis, { anchor: 'y2', matches: 'x' }), xaxis: Object.assign({}, base.xaxis, { showticklabels: false }) });
       Plotly.newPlot('l1', [

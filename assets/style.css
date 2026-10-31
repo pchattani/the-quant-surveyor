@@ -1,4 +1,6 @@
-/* The Quant Surveyor — kit "Broadcast" (dark only), the same visual system as The Quant Governor and the
+/* The Quant Surveyor — part of The Quant Macro family with The Quant Governor and The Quant Barometer: the
+   Governor's round-2 planes (midnight navy, amber mark accent, IBM Plex Mono for figures that change) on the kit
+   "Broadcast" structure (dark only), the same visual system as The Quant Governor and the
    Quant sports sites: a black top bar and section nav, charcoal cards with a 5 px top rule, Bebas Neue numbers
    and titles, Barlow body, Barlow Condensed labels, cobalt for "ours" and for rising prices, coral for falling,
    volt for tags and key marks. Hard edges: no radii, no soft shadows. The second half of the file restyles the
@@ -6,24 +8,26 @@
 
 :root, :root[data-theme] {
   color-scheme: dark;
-  --bg: #0a0c10; --block: #000000; --block-2: #12151c; --block-3: #1a1e27;
-  --s-1: #14171d; --s-2: #1c2028; --s-3: #262b35; --s-4: #313744;
-  --card-rule: #2a303c; --block-line: #222835; --slate: #3a4150; --seg-off: #262c38;
-  --ink-1: #f3f5f8; --ink-2: #c3c9d4; --ink-3: #939bab; --ink-4: #5b6372; --ink-inv: #0a0c10;
-  --block-ink: #ffffff; --block-ink-2: #c3c9d4; --block-ink-3: #9aa3b2;
-  --line-1: rgba(200,212,235,0.08); --line-2: rgba(200,212,235,0.13); --line-3: rgba(200,212,235,0.26);
-  --grid: #232833; --axis: #596171;
-  --signal: #7d93ff; --signal-2: #a3b3ff; --signal-ink: #0a0c10; --signal-deep: #5a69b7; --signal-soft: rgba(125,147,255,0.16);
-  --volt: #d4ff3a; --volt-ink: #0a0c10; --volt-soft: rgba(212,255,58,0.16);
-  --coral: #ff6a4d; --sky: #5ec8f0; --plum: #c39be8; --leaf: #8fd16a; --a-macro: #8fdcc8; --a-land: #ffb86b;
-  --live: #ff4d2e; --focus: #d4ff3a;
+  --bg: #070b16; --block: #03060e; --block-2: #0a1020; --block-3: #0f172b;
+  --s-1: #0d1526; --s-2: #132038; --s-3: #1b2740; --s-4: #243352;
+  --card-rule: #223055; --block-line: #162039; --slate: #3b4a6b; --seg-off: #1b2740;
+  --ink-1: #f2f5fb; --ink-2: #c0c9da; --ink-3: #8e9ab0; --ink-4: #56617a; --ink-inv: #070b16;
+  --block-ink: #ffffff; --block-ink-2: #c0c9da; --block-ink-3: #94a0b8;
+  --line-1: rgba(170,190,235,0.08); --line-2: rgba(170,190,235,0.13); --line-3: rgba(170,190,235,0.26);
+  --grid: #1a2641; --axis: #3a4b70;
+  --signal: #7d93ff; --signal-2: #a3b3ff; --signal-ink: #070b16; --signal-deep: #5a69b7; --signal-soft: rgba(125,147,255,0.16);
+  --volt: #ffb224; --volt-ink: #070b16; --volt-soft: rgba(255,178,36,0.16);
+  --coral: #ff6a4d; --sky: #5ec8f0; --plum: #c39be8; --leaf: #8fd16a; --a-macro: #8fdcc8; --a-land: #ffb224;
+  --live: #ff4d2e; --focus: #ffb224;
   /* polarity: falling prices coral ↔ rising prices cobalt */
   --down: #ff6a4d; --up: #7d93ff; --down-rgb: 255,106,77; --up-rgb: 125,147,255;
   --good: #5fd38a; --warning: #ffc94d; --serious: #ff9a6b; --critical: #ff4d2e; --prov: #ffc94d;
   --font-display: "Bebas Neue", "Oswald", Impact, "Arial Narrow", sans-serif;
   --font-ui: "Barlow", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-cond: "Barlow Condensed", "Barlow", "Arial Narrow", sans-serif;
-  --mono: var(--font-cond);
+  --font-num: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --mono: var(--font-cond); --num: var(--font-num);
+  --amber: #ffb224; --amber-ink: #070b16; --amber-soft: rgba(255,178,36,0.16);
   --gutter: 24px; --gap: 12px; --page-max: 1360px; --topbar-h: 58px; --secnav-h: 46px; --skew: -18deg;
   /* legacy aliases used by the page scripts' inline styles */
   --fg: var(--ink-1); --fg2: var(--ink-2); --fg3: var(--ink-3); --line: var(--line-2); --bg2: var(--s-1); --bg3: var(--s-2); --accent: var(--signal); --warn: var(--warning);
@@ -37,7 +41,7 @@ a { color: var(--signal); text-decoration: none; } a:hover { color: var(--signal
 h1, h2, h3, h4 { margin: 0; font-weight: 400; letter-spacing: 0; }
 p { margin: 0; }
 button, select, input { font: inherit; color: inherit; }
-.num { font-variant-numeric: tabular-nums; }
+.num { font-family: var(--font-num); font-size: .95em; font-variant-numeric: tabular-nums; }
 .mono { font-family: var(--font-cond); font-weight: 600; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
 .eyebrow { font: 700 12px/1.25 var(--font-cond); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
 .hidden, [hidden] { display: none !important; }
@@ -45,7 +49,7 @@ button, select, input { font: inherit; color: inherit; }
 :is(.btn-icon, .tab, select.ctl, input.ctl, .mini, th[role="button"], .chip-btn):focus-visible, .seg label:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 /* ── Top bar ───────────────────────────────────────────────────────────── */
-.topbar { position: sticky; top: 0; z-index: 50; background: var(--block); color: var(--block-ink); border-bottom: 1px solid var(--block-line); }
+.topbar { position: sticky; top: 0; z-index: 50; background: var(--block); color: var(--block-ink); border-bottom: 2px solid var(--amber); }
 .topbar-in { max-width: var(--page-max); margin: 0 auto; min-height: var(--topbar-h); padding: 0 var(--gutter); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .brand { display: flex; align-items: center; gap: 12px; min-width: 0; color: var(--block-ink); }
 .brand .mark { width: 22px; height: 26px; background: var(--volt); transform: skewX(var(--skew)); flex: none; display: block; margin: 0 4px 0 3px; }
@@ -219,3 +223,34 @@ footer.foot .in { max-width: var(--page-max); margin: 0 auto; } footer.foot b { 
   .card.half, .card.third, .card.twothirds, .card.quarter, .card.fivetwelfths, .card.seventwelfths { grid-column: span 12; }
   .hist { grid-template-columns: 5rem 1fr 6rem; } .hist .r { display: none; }
 }
+
+/* ── Round 2 (2026-10-31): figures in Plex Mono, the movers tape, the month in five lines ──────────────── */
+.chip, td.n, .tile .delta, .tile .sub, .asof-top, .tick .chg, .tick .thr, .data td.t { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.chip, td.n { font-size: 12.5px; }
+.ticker { position: sticky; top: calc(var(--topbar-h) + var(--secnav-h)); z-index: 48; display: flex; overflow-x: auto; scrollbar-width: none; background: var(--block); border-bottom: 1px solid var(--block-line); min-height: 50px; color: #fff; }
+.ticker::-webkit-scrollbar { display: none; }
+.ticker-in { display: flex; gap: 0; max-width: var(--page-max); margin: 0 auto; padding: 0 var(--gutter); width: 100%; }
+.tick-head { flex: none; display: grid; place-items: center; padding: 6px 14px; background: var(--block-2); color: var(--amber); font: 700 12px/1.15 var(--font-cond); letter-spacing: .1em; text-transform: uppercase; border-right: 1px solid var(--card-rule); min-width: 96px; text-align: center; }
+.tick { flex: none; display: grid; grid-template-columns: auto auto; gap: 0 10px; align-items: baseline; padding: 7px 14px 8px; border-right: 1px solid var(--card-rule); color: #f2f5fb; text-decoration: none; }
+.tick:hover { background: var(--block-2); color: #fff; }
+.tick .nm { font: 400 21px/1 var(--font-display); letter-spacing: .02em; white-space: nowrap; max-width: 190px; overflow: hidden; text-overflow: ellipsis; }
+.tick .chg { font-size: 13px; font-weight: 600; }
+.tick .thr { grid-column: 1 / -1; font-size: 10.5px; color: var(--block-ink-3); margin-top: 3px; letter-spacing: .02em; }
+.tick.up .chg { color: var(--up); } .tick.down .chg { color: var(--down); }
+.tick-sep { flex: none; width: 6px; background: var(--block-2); }
+.week-head { margin-top: 22px; }
+.week-head .sh-title { font-size: clamp(2rem, 3.4vw, 2.75rem); }
+.week { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px; margin-bottom: 22px; }
+.week-tile { display: block; background: var(--block); color: var(--block-ink); padding: 14px 16px; min-width: 0; text-decoration: none; }
+.week-tile:hover { background: #060a14; color: #fff; }
+.week-tile .k { display: block; font: 700 12px/1.25 var(--font-cond); letter-spacing: .1em; text-transform: uppercase; color: var(--amber); }
+.week-tile .v { display: block; font: 400 clamp(1.9rem, 2.6vw, 2.5rem)/0.95 var(--font-display); letter-spacing: .01em; margin: 6px 0; overflow-wrap: anywhere; }
+.week-tile .v.up { color: var(--up); } .week-tile .v.down { color: var(--down); }
+.week-tile p { margin: 0; font: 500 12.5px/1.45 var(--font-ui); color: var(--block-ink-2); }
+@media (max-width: 980px) { .week { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .week { grid-template-columns: minmax(0, 1fr); } .ticker { position: static; } }
+/* the family switcher needs the bar's middle: the strapline and as-of move out of the bar, search narrows */
+.topbar-in:has(.qm-fam) .brand .sub { display: none; }
+.topbar-in:has(.qm-fam) .asof-top { display: none; }
+.topbar-in:has(.qm-fam) .search input { width: 14rem; }
+@media (max-width: 1180px) { .topbar-in:has(.qm-fam) .search input { width: 10rem; } }

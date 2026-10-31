@@ -12,14 +12,14 @@
   const chip = (v, d = 1, vmax = 10, suffix = '%') => `<span class="chip" style="${wash(v, vmax)}">${num(v) ? f1(v, d) + suffix : '–'}</span>`;
   const zbar = (v, vmax = 3) => { if (!num(v)) return '–'; const w = Math.min(1, Math.abs(v) / vmax) * 50; return `<span class="zbar" title="${v.toFixed(2)}"><i class="${sgn(v)}" style="${v < 0 ? `right:50%;width:${w}%` : `left:50%;width:${w}%`}"></i></span>`; };
   const REGION_COLOR = { Europe: '#7d93ff', Americas: '#ff6a4d', APAC: '#5ec8f0', MENA: '#c39be8', Africa: '#8fd16a' };
-  const REGIONS = ['Europe', 'Americas', 'APAC'];
-  const T = { bg: '#14171d', elev: '#1c2028', ink1: '#f3f5f8', ink2: '#c3c9d4', ink3: '#939bab', grid: '#232833', axis: '#596171', up: '#7d93ff', down: '#ff6a4d', volt: '#d4ff3a', slate: '#3a4150',
-    seq: ['#7d93ff', '#ff6a4d', '#5ec8f0', '#c39be8', '#8fd16a', '#8fdcc8', '#d4ff3a'] };
+  const REGIONS = ['Europe', 'Americas', 'APAC', 'MENA', 'Africa'];
+  const T = { bg: '#0d1526', elev: '#132038', ink1: '#f2f5fb', ink2: '#c0c9da', ink3: '#8e9ab0', grid: '#1a2641', axis: '#3a4b70', up: '#7d93ff', down: '#ff6a4d', volt: '#ffb224', slate: '#3b4a6b',
+    seq: ['#7d93ff', '#ff6a4d', '#5ec8f0', '#c39be8', '#8fd16a', '#8fdcc8', '#ffb224'] };
   const DIV = [[0, T.down], [0.5, T.slate], [1, T.up]];
   const CFG = { displayModeBar: false, responsive: true };
 
   function layout(o = {}) {
-    const ax = { gridcolor: T.grid, zerolinecolor: T.axis, linecolor: T.axis, tickcolor: T.axis, tickfont: { color: T.ink3 }, title: { text: '', font: { color: T.ink2 } } };
+    const ax = { gridcolor: T.grid, zerolinecolor: T.axis, linecolor: T.axis, tickcolor: T.axis, tickfont: { color: T.ink3, family: 'IBM Plex Mono, ui-monospace, monospace', size: 10.5 }, title: { text: '', font: { color: T.ink2 } } };
     const base = { paper_bgcolor: T.bg, plot_bgcolor: T.bg, font: { family: 'Barlow, system-ui, sans-serif', color: T.ink2, size: 12 }, margin: { l: 56, r: 16, t: 16, b: 40 },
       hovermode: 'closest', colorway: T.seq, legend: { orientation: 'h', y: 1.12, x: 0, font: { color: T.ink2 } },
       hoverlabel: { bgcolor: T.elev, bordercolor: T.slate, font: { color: T.ink1, family: 'Barlow Condensed, sans-serif', size: 12 } } };
@@ -87,14 +87,47 @@
   window.addEventListener('hashchange', setTab);
   setTimeout(setTab, 0);
 
+
+  // ── the movers tape (every route) and the month in five lines (Monitor) ─────────────────────────────────
+  const fresh = (cs) => { const yrs = cs.map(c => +(c.data_through || '0').slice(0, 4)); const top = Math.max(...yrs); return cs.filter(c => +(c.data_through || '0').slice(0, 4) >= top - 1 && num(c.m12)); };
+  async function tape() {
+    const el = document.getElementById('ticker'); if (!el || el.dataset.done) return;
+    let d; try { d = await dash(); } catch (e) { return; }
+    const cs = fresh(d.cities).sort((a, b) => b.m12 - a.m12);
+    const tick = c => `<a class="tick ${sgn(c.m12)}" href="#/city/${c.key}" title="${esc(c.name)}: ${f1(c.m12)}% over 12 months, through ${esc(c.data_through)}"><span class="nm">${esc(c.name)}</span><span class="chg">${f1(c.m12)}%</span><span class="thr">${esc(c.country)} · ${esc(c.data_through)}${c.tier === 'B' ? ' · index' : ''}</span></a>`;
+    el.innerHTML = `<div class="ticker-in"><span class="tick-head">12m<br>leaders</span>${cs.slice(0, 12).map(tick).join('')}<span class="tick-sep"></span><span class="tick-head">12m<br>laggards</span>${cs.slice(-12).reverse().map(tick).join('')}</div>`;
+    el.hidden = false; el.dataset.done = '1';
+  }
+  setTimeout(tape, 0);
+  function fiveLines(d) {
+    const cs = fresh(d.cities);
+    if (!cs.length) return '';
+    const by = (k, dir = 1) => cs.filter(c => num(c[k])).sort((a, b) => dir * (b[k] - a[k]))[0];
+    const top = by('m12'), bot = by('m12', -1);
+    const turns = cs.filter(c => num(c.m3) && Math.sign(c.m3) !== Math.sign(c.m12) && Math.abs(c.m3) > 0.5 && Math.abs(c.m12) > 1).sort((a, b) => Math.abs(b.m3) - Math.abs(a.m3));
+    const turn = turns[0];
+    const ctry = (d.countries || []).filter(c => num(c.pir_z)).sort((a, b) => b.pir_z - a.pir_z)[0];
+    const K = d.kpis.breadth_cities;
+    const t = (href, k, v, cls, p) => `<a class="week-tile" href="${href}"><span class="k">${k}</span><span class="v ${cls}">${v}</span><p>${p}</p></a>`;
+    const tiles = [
+      t(`#/city/${top.key}`, 'Biggest riser', `${f1(top.m12)}%`, 'up', `${esc(top.name)} over 12 months, through ${esc(top.data_through)}${top.tier === 'B' ? ' (official index)' : ''}.`),
+      t(`#/city/${bot.key}`, 'Biggest faller', `${f1(bot.m12)}%`, bot.m12 < 0 ? 'down' : 'up', `${esc(bot.name)} over 12 months, through ${esc(bot.data_through)}.`),
+      turn ? t(`#/city/${turn.key}`, turn.m3 > 0 ? 'Turning up' : 'Turning down', `${f1(turn.m3)}%`, sgn(turn.m3), `${esc(turn.name)}: three months against a 12-month ${f1(turn.m12)}%.`)
+           : t('#/xsection', 'No turns', '–', '', 'No city has a 3-month move against its 12-month trend.'),
+      t('#/xsection', 'Breadth', `${f1(K.value, 0, false)}%`, '', `of ${cs.length} cities rising over 12 months${num(K.delta) ? `, ${f1(K.delta, 0)} pts on a year ago` : ''}.`),
+      ctry ? t(`#/country/${ctry.iso2}`, 'Most stretched', `z ${f1(ctry.pir_z, 1)}`, 'down', `${esc(ctry.name)}: price-to-income against its own 20-year history.`) : '',
+    ];
+    return `<div class="sh week-head"><div class="sh-main"><span class="kicker">The month in five lines</span></div></div><section class="week" aria-label="The month in five lines">${tiles.join('')}</section>`;
+  }
+
   // ── Monitor ──────────────────────────────────────────────────────────────
   route('/', async (app) => {
     const d = await dash(); const K = d.kpis; const X = d.xsection;
     const asof = document.getElementById('asof-top'); if (asof) asof.innerHTML = `Cities through <b>${esc(d.data_through.cities)}</b> · countries <b>${esc(d.data_through.countries || '–')}</b> · built <b>${esc(d.as_of)}</b>`;
     let region = 'All', horizon = 'm12';
     const HZ = { m3: '3 months', m12: '12 months', y5: '5 years', y10: '10 years', real_m12: 'Real 12m' };
-    app.innerHTML = hero(`Global residential real estate · ${d.cities.length} cities · ${d.countries.length} countries`, 'Every sold price, by the numbers.',
-      `Repeat-sales indices built from open deed and transaction registers in ${d.cities.filter(c => c.tier !== 'B').length} cities, down to postcode district and neighbourhood, with price tiers, seller outcomes and liquidity; real prices, valuation, exuberance tests and a common factor across ${d.countries.length} countries. Nothing scraped, nothing paid for, nothing you cannot audit.`,
+    app.innerHTML = hero(`Global residential real estate · ${d.cities.length} cities · ${d.countries.length} countries · through ${esc(d.data_through.cities)} · built ${esc(d.as_of)}`, 'Every market, by the numbers.',
+      `Repeat-sales indices from open deed registers in ${d.cities.filter(c => c.tier !== 'B').length} cities down to the neighbourhood, official city and district indices in ${d.cities.filter(c => c.tier === 'B').length} more, with price tiers, seller outcomes and liquidity; real prices, valuation, exuberance tests and a common factor across ${d.countries.length} countries. Nothing scraped, nothing paid for, nothing you cannot audit.`,
       [['#/macro', 'Macro', 'Countries, valuation, exuberance'], ['#/xsection', 'Cross-section', 'Who moves together'], ['#/micro', 'Micro', 'Tiers, liquidity, sellers']])
       + `<section class="kpis" aria-label="Global indicators">
         ${tile('Cities rising · 12m', K.breadth_cities.value, { unit: '%', d: 0, delta: K.breadth_cities.delta, note: 'pts vs 1y ago', spark: K.breadth_cities.spark })}
@@ -104,10 +137,11 @@
         ${tile('Countries · real up 1y', K.countries_real_up.value, { unit: '%', d: 0, sub: K.countries_real_up.sub })}
         ${tile('Exuberant · GSADF', K.exuberant.value, { d: 0, sub: `${K.stretched.value} stretched on price/income` })}
       </section>
+      ${fiveLines(d)}
       <div class="filters"><span class="filter-label">Region</span>${seg('f-region', [['All', 'All'], ...REGIONS.map(r => [r, r])], region)}
         <span class="filter-label">Horizon</span>${seg('f-horizon', Object.entries(HZ), horizon)}<span class="spacer"></span><span class="filter-label" id="mon-count"></span></div>
       <div class="grid">
-        <figure class="card"><figcaption><h3>City board <span class="ctx">sold-price repeat-sales indices · changes to the last complete month · click a column to sort</span></h3></figcaption><div class="tablewrap" id="board" style="max-height:640px"></div>
+        <figure class="card"><figcaption><h3>City board <span class="ctx">repeat-sales indices from registers and official city indices · changes to the last complete period · click a column to sort</span></h3></figcaption><div class="tablewrap" id="board" style="max-height:640px"></div>
           <p class="note">Real 12m: nominal less the country's CPI inflation implied by the BIS nominal and real indices (approximate). Vol: annualised sd of monthly log changes, 3y. Drawdown: from the all-time high. Gap: log level vs its 5-year mean. z12: the 12-month change against the city's own history. Tier spread: top-third minus bottom-third 12m change. Loss share: resales below the purchase price, last full year. Vol z: 12-month sales count against its history.</p></figure>
         ${card('c-ladder', 'Momentum ladder', 'ranked · coral falling, cobalt rising', 'seventwelfths')}
         ${card('c-phase', 'Phase diagram', '12m change × 3m change · colour by region', 'fivetwelfths')}
@@ -241,7 +275,7 @@
       { height: Math.max(420, 16 * dd.length + 50), margin: { l: 130, r: 16, t: 10, b: 36 }, xaxis: { title: 'Real price vs all-time high, %' }, yaxis: { tickfont: { size: 10 } }, showlegend: false, bargap: 0.25 });
     if (H && H.rows.length) {
       const hr = H.rows.slice().sort((a, b) => (a.region || '').localeCompare(b.region || '') || a.name.localeCompare(b.name));
-      plot('c-heat', [{ type: 'heatmap', x: H.years, y: hr.map(r => r.name), z: hr.map(r => r.values), colorscale: DIV, zmid: 0, zmin: -20, zmax: 20, xgap: 2, ygap: 2, colorbar: { title: { text: '%' }, tickfont: { color: T.ink3 }, outlinewidth: 0, thickness: 10 }, hovertemplate: '%{y} · %{x}: %{z:+.1f}%<extra></extra>' }],
+      plot('c-heat', [{ type: 'heatmap', x: H.years, y: hr.map(r => r.name), z: hr.map(r => r.values), colorscale: DIV, zmid: 0, zmin: -20, zmax: 20, xgap: 2, ygap: 2, colorbar: { title: { text: '%' }, tickfont: { color: T.ink3, family: 'IBM Plex Mono, ui-monospace, monospace', size: 10.5 }, outlinewidth: 0, thickness: 10 }, hovertemplate: '%{y} · %{x}: %{z:+.1f}%<extra></extra>' }],
         { height: Math.max(520, 16 * hr.length + 60), margin: { l: 130, r: 16, t: 10, b: 36 }, yaxis: { tickfont: { size: 10 }, autorange: 'reversed' } });
     }
     if (G) {
@@ -285,7 +319,7 @@
       { k: 'real_m12', label: 'City real', num: true, render: v => chip(v, 1, 10) },
     ], vs, { sort: 'premium', desc: true });
     if (R.keys.length) {
-      plot('c-corrmat', [{ type: 'heatmap', x: R.names, y: R.names, z: R.matrix, colorscale: DIV, zmid: 0, zmin: -1, zmax: 1, xgap: 2, ygap: 2, colorbar: { tickfont: { color: T.ink3 }, outlinewidth: 0, thickness: 10 }, hovertemplate: '%{y} × %{x}: %{z:.2f}<extra></extra>' }],
+      plot('c-corrmat', [{ type: 'heatmap', x: R.names, y: R.names, z: R.matrix, colorscale: DIV, zmid: 0, zmin: -1, zmax: 1, xgap: 2, ygap: 2, colorbar: { tickfont: { color: T.ink3, family: 'IBM Plex Mono, ui-monospace, monospace', size: 10.5 }, outlinewidth: 0, thickness: 10 }, hovertemplate: '%{y} × %{x}: %{z:.2f}<extra></extra>' }],
         { height: Math.max(520, 20 * R.names.length + 120), margin: { l: 150, r: 16, t: 10, b: 130 }, xaxis: { tickangle: -60, tickfont: { size: 10 } }, yaxis: { tickfont: { size: 10 }, autorange: 'reversed' } });
     }
     const renderPick = () => {
