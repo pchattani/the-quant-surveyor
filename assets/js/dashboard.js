@@ -128,7 +128,7 @@
     const HZ = { m3: '3 months', m12: '12 months', y5: '5 years', y10: '10 years', real_m12: 'Real 12m' };
     app.innerHTML = hero(`Global residential real estate · ${d.cities.length} cities · ${d.countries.length} countries · through ${esc(d.data_through.cities)} · built ${esc(d.as_of)}`, 'Every market, by the numbers.',
       `Repeat-sales indices from open deed registers in ${d.cities.filter(c => c.tier !== 'B').length} cities down to the neighbourhood, official city and district indices in ${d.cities.filter(c => c.tier === 'B').length} more, with price tiers, seller outcomes and liquidity; real prices, valuation, exuberance tests and a common factor across ${d.countries.length} countries. Nothing scraped, nothing paid for, nothing you cannot audit.`,
-      [['#/macro', 'Macro', 'Countries, valuation, exuberance'], ['#/xsection', 'Cross-section', 'Who moves together'], ['#/micro', 'Micro', 'Tiers, liquidity, sellers']])
+      [['#/screen', 'Screen', 'Ranked signals and their record'], ['#/health', 'Health', 'Distress and its pockets'], ['#/macro', 'Macro', 'Countries, valuation, exuberance']])
       + `<section class="kpis" aria-label="Global indicators">
         ${tile('Cities rising · 12m', K.breadth_cities.value, { unit: '%', d: 0, delta: K.breadth_cities.delta, note: 'pts vs 1y ago', spark: K.breadth_cities.spark })}
         ${tile('Median city · 12m', K.median_m12.value, { unit: '%', signed: true, delta: K.median_m12.delta, note: 'pts vs 1y ago', spark: K.median_m12.spark })}

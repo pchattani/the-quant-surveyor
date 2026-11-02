@@ -254,3 +254,14 @@ footer.foot .in { max-width: var(--page-max); margin: 0 auto; } footer.foot b { 
 .topbar-in:has(.qm-fam) .asof-top { display: none; }
 .topbar-in:has(.qm-fam) .search input { width: 14rem; }
 @media (max-width: 1180px) { .topbar-in:has(.qm-fam) .search input { width: 10rem; } }
+
+/* ── Screen and Health (2026-11-01) ───────────────────────────────────────────────────────────────── */
+.qn { display: inline-block; min-width: 22px; text-align: center; font: 600 12.5px/20px var(--font-num); background: var(--s-3); color: var(--ink-1); }
+.qn.q5 { background: rgba(var(--up-rgb), .55); color: #fff; } .qn.q4 { background: rgba(var(--up-rgb), .28); }
+.qn.q1 { background: rgba(var(--down-rgb), .55); color: #fff; } .qn.q2 { background: rgba(var(--down-rgb), .28); }
+.qn.hot { background: rgba(var(--down-rgb), .6); color: #fff; }
+.tag.flag { color: var(--down); background: rgba(var(--down-rgb), .14); white-space: nowrap; }
+.tag.risk { color: var(--amber); background: var(--amber-soft); white-space: nowrap; }
+.tile .value .unit { font: 700 13px var(--font-cond); text-transform: uppercase; letter-spacing: .04em; color: var(--block-ink-2); margin-left: 4px; }
+#c-ic, #c-breadth, #c-med, #c-loss { height: 340px; }
+#c-quad { height: 460px; }
