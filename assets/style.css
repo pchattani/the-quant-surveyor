@@ -265,3 +265,4 @@ footer.foot .in { max-width: var(--page-max); margin: 0 auto; } footer.foot b { 
 .tile .value .unit { font: 700 13px var(--font-cond); text-transform: uppercase; letter-spacing: .04em; color: var(--block-ink-2); margin-left: 4px; }
 #c-ic, #c-breadth, #c-med, #c-loss { height: 340px; }
 #c-quad { height: 460px; }
+.note.caveat { border-left: 3px solid var(--amber); padding-left: 10px; color: var(--ink-2); }

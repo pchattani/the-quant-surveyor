@@ -38,7 +38,7 @@
   const seg = (id, opts, cur) => `<div class="seg" id="${id}" role="group">${opts.map(([v, l]) => `<button type="button" data-v="${v}" aria-pressed="${v === cur}">${l}</button>`).join('')}</div>`;
   const onSeg = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', e => { const b = e.target.closest ? e.target.closest('button[data-v]') : null; if (!b) return; [...el.querySelectorAll('button')].forEach(x => x.setAttribute('aria-pressed', String(x === b))); fn(b.dataset.v); }); };
   const flags = (r, withRisk = true) => (r.flags || []).map(k => `<span class="tag flag">${FLAG[k] || k}</span>`).join(' ') + (withRisk ? (r.risk || []).map(k => ` <span class="tag risk">${FLAG[k] || k}</span>`).join('') : '');
-  const city = r => `<a href="#/city/${r.key}">${esc(r.name)}</a>${r.kind === 'index' ? ' <span class="tag">index</span>' : ''}`;
+  const city = r => `<a href="#/city/${r.key}">${esc(r.name)}</a>${r.kind === 'index' ? ' <span class="tag">index</span>' : ''}${r.thin ? ' <span class="tag risk" title="thin or volatile official series: read with care">thin</span>' : ''}`;
   function table(id, cols, rows, { sort = null, desc = true, limit = 0 } = {}) {
     let key = sort, down = desc;
     const render = () => {
