@@ -71,13 +71,14 @@ window.REI = (function () {
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   // ---------------------------------------------------------------- theme and palette
+  /* The Quant Macro family colours (the-quant-macro/assets/base.css): navy planes, cobalt and amber, green and red-orange. */
   const PAL = {
-    dark: { panel: '#14171c', panel2: '#1a1e24', line: '#262b33', grid: '#20252c', axis: '#3a414c', ink: '#e6e8eb', ink2: '#a9b0ba', mute: '#7b838f',
-      cheap: '#4a9be8', rich: '#e8a23a', mid: '#444a53', up: '#35b58a', down: '#e5604d', neutral: '#8a919c',
-      cat: ['#4a9be8', '#e8a23a', '#35b58a', '#a78bfa'], land: '#1d2127', nodata: '#2a2f37' },
-    light: { panel: '#ffffff', panel2: '#f7f7f4', line: '#dcdcd6', grid: '#ecece7', axis: '#bfc0b9', ink: '#15181c', ink2: '#4a5059', mute: '#6b717b',
-      cheap: '#2f6fbe', rich: '#b87400', mid: '#c9cbcf', up: '#17805c', down: '#c0392b', neutral: '#7d838c',
-      cat: ['#2f6fbe', '#b87400', '#17805c', '#6d4fc4'], land: '#ebebe6', nodata: '#dcdcd6' },
+    dark: { panel: '#0d1526', panel2: '#132038', line: '#1b2740', grid: '#1a2641', axis: '#3a4b70', ink: '#f2f5fb', ink2: '#c0c9da', mute: '#8e9ab0',
+      cheap: '#7d93ff', rich: '#ffb224', mid: '#4b5873', up: '#5fd38a', down: '#ff6a4d', neutral: '#8e9ab0',
+      cat: ['#7d93ff', '#ffb224', '#5ec8f0', '#c39be8'], land: '#0f1930', nodata: '#26324f' },
+    light: { panel: '#ffffff', panel2: '#eef1f7', line: '#d9dfec', grid: '#e6eaf3', axis: '#aab4c9', ink: '#0a1020', ink2: '#3a4660', mute: '#66728c',
+      cheap: '#3f55d6', rich: '#b06f00', mid: '#c2c9d8', up: '#1b8748', down: '#d23c1e', neutral: '#7a859c',
+      cat: ['#3f55d6', '#b06f00', '#0f86b0', '#8a55c9'], land: '#e6eaf3', nodata: '#d5dbe8' },
   };
   const theme = () => (document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
   const pal = () => PAL[theme()];

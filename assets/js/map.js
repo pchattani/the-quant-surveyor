@@ -110,7 +110,7 @@ REI.map = (function () {
     function paint(o) {
       const P = REI.pal(), ch = o.kind === 'change', span = o.span || 30;
       const lo = ch ? P.down : P.cheap, hi = ch ? P.up : P.rich;
-      const mid = REI.theme() === 'dark' ? '#737b87' : '#9aa0a8';        // the neutral middle, light enough to see on the basemap
+      const mid = REI.theme() === 'dark' ? '#6b7a9c' : '#9aa6c0';        // the neutral middle, light enough to see on the basemap
       return { color: ['case', ['get', 'has'], ['interpolate', ['linear'], ['get', 'v'], -span, lo, 0, mid, span, hi], P.neutral], lo, hi, mid, span, P };
     }
     function legend(o, pt) {

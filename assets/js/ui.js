@@ -50,9 +50,10 @@ REI.ui = (function () {
   }
 
   // ---------------------------------------------------------------- blocks
-  const kpis = items => `<div class="kpis">${items.filter(Boolean).map(k => `<div class="kpi"${k.t ? ` title="${esc(k.t)}"` : ''}>${k.sp || ''}<div class="k">${esc(k.k)}</div><div class="v${k.cls ? ' ' + k.cls : ''}">${k.v}</div>${k.s ? `<div class="s">${k.s}</div>` : ''}</div>`).join('')}</div>`;
+  const kcols = n => (n <= 6 ? n : Math.ceil(n / 2));        // more than six tiles: two even rows
+  const kpis = items => `<div class="kpis" style="grid-template-columns:repeat(${kcols(items.filter(Boolean).length)},minmax(0,1fr))">${items.filter(Boolean).map(k => `<div class="kpi"${k.t ? ` title="${esc(k.t)}"` : ''}>${k.sp || ''}<div class="k">${esc(k.k)}</div><div class="v${k.cls ? ' ' + k.cls : ''}">${k.v}</div>${k.s ? `<div class="s">${k.s}</div>` : ''}</div>`).join('')}</div>`;
   const panel = (title, sub, body, o = {}) => `<section class="pnl"${o.id ? ` id="${o.id}"` : ''}><div class="pnl-h"><h2>${esc(title)}</h2>${sub ? `<span class="hs">${sub}</span>` : ''}</div><div class="pnl-b${o.flush ? ' flush' : ''}">${body}</div></section>`;
-  const head = (title, sub, meta, crumbs) => `${crumbs ? `<div class="crumbs">${crumbs}</div>` : ''}<div class="ph"><div><h1>${title}</h1>${sub ? `<p class="sub">${sub}</p>` : ''}</div>${meta ? `<div class="meta">${meta}</div>` : ''}</div>`;
+  const head = (title, sub, meta, crumbs, lg) => `${crumbs ? `<div class="crumbs">${crumbs}</div>` : ''}<div class="ph${lg ? ' lg' : ''}"><div><h1>${title}</h1>${sub ? `<p class="sub">${sub}</p>` : ''}</div>${meta ? `<div class="meta">${meta}</div>` : ''}</div>`;
   const badge = (t, warn) => `<span class="badge${warn ? ' warn' : ''}">${esc(t)}</span>`;
   const seg = (id, opts, cur) => `<span class="seg" id="${id}">${opts.map(([v, l]) => `<button type="button" data-v="${esc(v)}" class="${v === cur ? 'on' : ''}">${esc(l)}</button>`).join('')}</span>`;
   const select = (id, label, opts, cur) => `<label for="${id}">${esc(label)}</label><select id="${id}">${opts.map(([v, l]) => `<option value="${esc(v)}"${v === cur ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>`;

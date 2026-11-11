@@ -1,8 +1,9 @@
 /* Plotly wrappers. One theme read from REI.pal() at draw time, so a theme switch redraws in the new colours.
    Rules kept throughout: one y-scale per chart, a legend only for two or more series, text in ink colours,
-   blue = cheap and amber = rich on a neutral grey midpoint, green and red only for price direction. */
+   cobalt = cheap and amber = rich on a neutral midpoint, green and red-orange only for price direction. Colours and
+   type are the family's (The Quant Macro). */
 REI.charts = (function () {
-  const SANS = '"IBM Plex Sans", system-ui, sans-serif', MONO = '"IBM Plex Mono", ui-monospace, monospace';
+  const SANS = '"Barlow", system-ui, sans-serif', MONO = '"IBM Plex Mono", ui-monospace, monospace';
   const cfg = { displayModeBar: false, responsive: true };
   /* If the charting library failed to load, show a notice in the chart slot instead of throwing and blanking the page. */
   const Plotly = new Proxy({}, { get: (_, k) => (window.Plotly && window.Plotly[k]) ? window.Plotly[k].bind(window.Plotly) : (div) => {

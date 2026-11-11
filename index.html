@@ -8,7 +8,7 @@
 <script>try { var t = localStorage.getItem('rei-theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <link rel="stylesheet" href="assets/style.css">
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"
@@ -30,12 +30,10 @@
     </a>
     <div class="topbar-right">
       <div class="asof-top" id="asof-top"></div>
-      <div class="search"><input id="q" type="search" placeholder="Search country or city" autocomplete="off" aria-label="Search"><div id="q-results" class="q-results"></div></div>
-      <button class="theme-btn" id="theme-btn" type="button" aria-label="Switch between dark and light">Light</button>
     </div>
   </div>
 </header>
-<nav class="tabs" aria-label="Sections">
+<nav class="tabs" aria-label="Sections"><div class="tabs-row">
   <div class="tabs-inner" id="nav" role="tablist">
     <a class="tab" role="tab" data-tab="" href="#/">Overview</a>
     <a class="tab" role="tab" data-tab="countries" href="#/countries">Countries</a>
@@ -46,7 +44,13 @@
     <a class="tab" role="tab" data-tab="evidence" href="#/evidence">Evidence</a>
     <a class="tab" role="tab" data-tab="methodology" href="#/methodology">Methodology</a>
   </div>
+  <div class="tabs-tools">
+    <div class="search"><input id="q" type="search" placeholder="Search country or city" autocomplete="off" aria-label="Search"><div id="q-results" class="q-results"></div></div>
+    <button class="theme-btn" id="theme-btn" type="button" aria-label="Switch between dark and light">Light</button>
+  </div>
+</div>
 </nav>
+<div class="ticker" id="ticker" hidden></div>
 <main id="app"><div class="loading">Loading…</div></main>
 <footer class="foot"><div class="in"><b>The Quant Surveyor</b> · part of The Quant Macro · open sold-price registers and official statistics. Fair-value gaps are positions against each market's own history, not forecasts; nothing here is a valuation of a property or investment advice. <span id="attribution"></span></div></footer>
 <script src="assets/qm-family.js" data-site="surveyor"></script>

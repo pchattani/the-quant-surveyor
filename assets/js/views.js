@@ -29,7 +29,17 @@ REI.vu = (function () {
   };
   const cityPts = (rows, m, nm, hl) => rows.filter(c => ok(c.lat) && ok(c.lon)).map(c => ({ lat: c.lat, lon: c.lon, v: ok(MAPM[m].get(c)) ? MAPM[m].get(c) : null, hl: c.key === hl,
     href: `#/city/${c.key}`, tip: `<b>${esc(c.name)}</b>${nm ? ' · ' + esc(nm[c.country] || c.country) : ''}<br>${ok(MAPM[m].get(c)) ? esc(MAPM[m].txt(c)) : 'no reading'}` }));
-  return { trim, tag, cl, kl, names, regime, through, gapCls, regions, opt, match, MAPM, cityPts };
+  /* The strip under the section nav, as on the sister sites: the most stretched country gaps, each a link. */
+  function ticker(v) {
+    const host = document.getElementById('ticker');
+    if (!host) return;
+    const rows = v.countries.filter(c => c.basis === 'ratios' && !c.stale && ok(c.gap)).sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap)).slice(0, 12);
+    if (!rows.length) return;
+    host.innerHTML = `<div class="ticker-in"><div class="tick-head">Furthest from<br>fair value</div>${rows.map(c =>
+      `<a class="tick" href="#/country/${c.iso2}" title="${esc(c.name)}"><span class="code">${esc(c.iso2)}</span><span class="when ${c.gap >= 0 ? 'rich' : 'cheap'}">${fmt.sg(c.gap, 0)}% ${c.gap >= 0 ? 'rich' : 'cheap'}</span><span class="tone">real 1y ${fmt.pct(c.real_1y)} · pctile ${fmt.fx(c.pct, 0)}</span></a>`).join('')}</div>`;
+    host.hidden = false;
+  }
+  return { trim, tag, cl, kl, names, regime, through, gapCls, regions, opt, match, MAPM, cityPts, ticker };
 })();
 
 (function () {
@@ -41,6 +51,8 @@ REI.vu = (function () {
   REI.redirect('/xsection', '/returns');
   REI.redirect('/country', '/countries');
 
+  REI.val().then(V.ticker).catch(() => {});
+
   REI.route('/', async app => {
     const v = await REI.val();
     const w = v.world, k = v.kpis, T = V.trim(w), i = T.last, nm = V.names(v);
@@ -49,9 +61,10 @@ REI.vu = (function () {
     const lastOf = a => { for (let j = Math.min(i, a.length - 1); j >= 0; j--) if (ok(a[j])) return a[j]; return null; };
     const tail = a => T.cut(a).slice(-60);
 
-    app.innerHTML = U.head('Global residential valuation',
-      `Where housing is rich or cheap against income, rents and financing cost, and which way prices are moving. ${k.countries} countries, ${k.cities} cities, ${k.districts.toLocaleString('en-GB')} districts.`,
-      `${U.badge('World series through ' + fmt.qtr(T.q))}<br>${k.countries_ratio} countries on valuation ratios, ${k.countries - k.countries_ratio} on trend only or stale`) +
+    app.innerHTML = U.head('Every housing market, against its own history.',
+      `Where housing is rich or cheap against income, rents and financing cost, and which way prices are moving: ${k.countries} countries, ${k.cities} cities and ${k.districts.toLocaleString('en-GB')} districts, each measured against its own record.`,
+      `${U.badge('World series through ' + fmt.qtr(T.q))}<br>${k.countries_ratio} countries on valuation ratios, ${k.countries - k.countries_ratio} on trend only or stale`,
+      `Global residential valuation · ${k.countries} countries · ${k.cities} cities`, true) +
       U.kpis([
         { k: 'Median country gap', v: U.sgn(w.gap_median[i], 1, '%'), cls: V.gapCls(w.gap_median[i]), sp: U.spark(tail(w.gap_median)),
           s: `Middle half ${fmt.pct(w.gap_q25[i], 0)} to ${fmt.pct(w.gap_q75[i], 0)} · ${w.n[i]} countries`, t: 'Median fair-value gap across countries on the ratio basis. Positive = prices above what income, rents and mortgage cost have supported in that country\'s own history.' },
@@ -61,7 +74,7 @@ REI.vu = (function () {
         { k: 'Cities falling', v: U.num(k.city_share_falling, 0, '%'), s: `of ${k.cities} cities, real 1-year change` },
         { k: 'Median policy rate', v: U.num(lastOf(w.policy_median), 2, '%'), sp: U.spark(tail(w.policy_median)), s: `median real 10-year yield ${fmt.fx(lastOf(w.real_long_median), 2)}%` },
       ]) +
-      `<div class="g g32">${U.panel('Fair-value gap by country', 'blue = cheap, amber = rich, grey = trend basis only or stale · click a country', '<div class="chart tall" id="ov-map"></div>', { flush: true })}
+      `<div class="g g32">${U.panel('Fair-value gap by country', 'cobalt = cheap, amber = rich, dark slate = trend basis only or stale · click a country', '<div class="chart tall" id="ov-map"></div>', { flush: true })}
         ${U.panel('Value against momentum', 'gap (%) across, real 1-year price change (%) up', '<div class="chart tall" id="ov-sc"></div>')}</div>
       <div class="g g2">${U.panel('The gap through time', 'median country and the middle half of countries', '<div class="chart" id="ov-gap"></div>')}
         ${U.panel('Breadth', 'share of countries, %', '<div class="chart" id="ov-br"></div>')}</div>
@@ -89,7 +102,7 @@ REI.vu = (function () {
     U.table('ov-cheap', { id: 'ov-cheap', cols: ccols, rows: by(ratio, 'gap', 1).slice(0, 10), sort: 'gap', dir: 1 });
 
     const cities = v.cities.filter(c => !c.stale && ok(c.gap) && c.basis === 'ratios');
-    const kc = [{ k: 'name', h: 'City', l: 1, f: r => V.kl(r, nm), ns: 1 }, { k: 'gap', h: 'Implied gap', f: r => U.gapBar(r.gap, null, null, { w: 72 }), ns: 1 }, { k: 'real_1y', h: 'Real 1y', f: r => U.chg(ok(r.real_1y) ? r.real_1y : r.mom), ns: 1 }];
+    const kc = [{ k: 'name', h: 'City', l: 1, f: r => V.kl(r, nm), ns: 1 }, { k: 'gap', h: 'Implied gap', f: r => U.gapBar(r.gap, null, null, { w: 52 }), ns: 1 }, { k: 'real_1y', h: 'Real 1y', f: r => U.chg(ok(r.real_1y) ? r.real_1y : r.mom), ns: 1 }];
     U.table('ov-c1', { id: 'ov-c1', cols: kc, rows: by(cities.filter(c => (ok(c.real_1y) ? c.real_1y : c.mom) < 0), 'gap', -1).slice(0, 8) });
     U.table('ov-c2', { id: 'ov-c2', cols: kc, rows: by(cities, 'gap', 1).slice(0, 8) });
     const kz = [kc[0], { k: 'prem_z', h: 'Premium z', f: r => U.zBar(r.prem_z), ns: 1 }, { k: 'prem', h: 'Premium', f: r => U.sgn(r.prem, 0, '%'), ns: 1, t: 'Real price relative to the country index, against the city\'s own long-run mean' }];
