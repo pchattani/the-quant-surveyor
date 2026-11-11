@@ -5,21 +5,60 @@
   const last = (a, q) => { if (!a) return [null, null]; for (let i = a.length - 1; i >= 0; i--) if (ok(a[i])) return [a[i], q ? q[i] : null]; return [null, null]; };
   const has = a => Array.isArray(a) && a.some(ok);
 
+  /* The model's panels on a country page: price against fitted fair value, the gap with its range and its history as
+     known at the time, what moved fair value, and the plain-figure reading. Countries without the model keep the reading. */
+  const dd = (kk, val, small) => `<div><dt>${kk}</dt><dd>${val}${small ? `<small>${small}</small>` : ''}</dd></div>`;
+  function reading(r, v) {
+    const parts = x => (x ? `base ${fmt.sg(x.base, 1)}${ok(x.gap) ? ` · gap ${fmt.sg(x.gap, 1)}` : ''} · momentum ${fmt.sg(x.mom, 1)}` : '');
+    const rng = (lo, hi) => (ok(lo) && ok(hi) ? `past errors ${fmt.sg(lo, 0)} to ${fmt.sg(hi, 0)} · ` : '');
+    return [
+      ok(r.exp_1y) ? dd('Expected real change, next year', `${fmt.sg(r.exp_1y, 1)}%`, rng(r.exp_1y_lo, r.exp_1y_hi) + parts(r.exp_1y_parts)) : '',
+      ok(r.exp_3y) ? dd('Expected real change, next 3 years', `${fmt.sg(r.exp_3y, 1)}% a year`, rng(r.exp_3y_lo, r.exp_3y_hi) + parts(r.exp_3y_parts)) : '',
+      ok(r.rate_sens) ? dd('Fair value if the lending rate were 1 point higher', `${fmt.sg(r.rate_sens, 1)}%`) : '',
+      ok(r.inc_growth) ? dd('Real income per head, 10 years', `${fmt.sg(r.inc_growth, 1)}% a year`, ok(r.inc_years) ? `${r.inc_years > 60 ? 'more than 60' : fmt.fx(r.inc_years, 0)} years of it would close the gap with real prices flat` : '') : '',
+      ok(r.be_rate) ? dd('Rate that restores average affordability', `${fmt.fx(r.be_rate, 2)}%`, `lending rate now ${fmt.fx(r.lend, 2)}% · ${r.be_gap >= 0 ? 'room of' : 'needs a fall of'} ${fmt.fx(Math.abs(r.be_gap), 2)} points`) : r.be_none ? dd('Rate that restores average affordability', 'none', 'even a zero rate would leave the payment above its average share of income') : '',
+      ok(r.rti) ? dd('Rent to income', `${fmt.sg(r.rti, 0)}%`, 'against its own long-run mean') : '',
+      ok(r.rent_real_1y) ? dd('Real rents, 1 year', `${fmt.sg(r.rent_real_1y, 1)}%`) : '',
+      ok(r.uw_q) ? dd('Real price peak', r.uw_q === 0 ? 'now' : esc(fmt.qtr(r.peak)), r.uw_q ? `${fmt.fx(r.uw_q / 4, 1)} years ago · ${fmt.pct(r.dd, 1)} from it` : '') : '',
+    ].join('');
+  }
+  function modelBlock(r, d, v) {
+    const rd = reading(r, v);
+    if (!rd && !has(d.fv)) return '';
+    const sub = r.exp_basis ? `expected change from ${esc(r.exp_basis)} · <a href="#/model">the model and its record</a>` : '';
+    const dl = `<dl class="dl one">${rd}</dl>`;
+    if (!has(d.fv)) return U.panel('Outlook and affordability', sub, dl);
+    const W = { 4: '1 year', 12: '3 years', 40: '10 years' };
+    const rows = (r.fv_parts || []).map(x => `<tr><td class="l">${W[x.q] || x.q + ' quarters'}</td><td>${fmt.sg(x.income, 1)}%</td><td>${fmt.sg(x.rates, 1)}%</td><td>${fmt.sg(x.fair, 1)}%</td><td>${fmt.sg(x.price, 1)}%</td><td>${fmt.sg(100 * ((1 + x.price / 100) / (1 + x.fair / 100) - 1), 1)}</td></tr>`).join('');
+    const B = r.fv_tier === 2 ? v.model.proxy.beta : v.model.beta;
+    const unfit = r.fv_unfit ? `<p class="note caveat"><b>The model does not fit ${esc(r.name)}.</b> Since ${esc(fmt.qtr(r.fv_from))} its model gap has been ${fmt.fx(100 * r.fv_trend_r2, 0)}% a straight line (${fmt.sg(r.fv_drift, 1)}% a year) and has crossed fair value ${r.fv_cross === 1 ? 'once' : r.fv_cross + ' times'}: price and income have drifted apart and never come back, so the reading of ${fmt.pct(r.fv_gap, 0)} says how far they have drifted, not that the market is ${r.fv_gap < 0 ? 'cheap' : 'rich'}. ${esc(r.name)} is therefore valued on ${r.basis === 'ratios' ? 'the four-ratio composite' : 'the trend basis'}, and the chart and table below are for reference.</p>` : '';
+    const proxy = r.fv_unfit ? unfit : r.fv_tier === 2 ? `<p class="note caveat"><b>Proxy income.</b> The OECD publishes no disposable-income series for ${esc(r.name)}, so the model here runs on ${esc(r.fv_basis || 'an income proxy')}: annual, a wider income concept than what households have to spend${r.fv_rolled ? `, and carried forward ${r.fv_rolled} quarter${r.fv_rolled > 1 ? 's' : ''} at its recent pace` : ''}. ${r.fv_no_rate ? 'No lending, bond or policy rate is on the site for this country, so its fair value moves with income alone. ' : `Lending rate: ${esc(r.fv_rate || 'see below')}. `}Read the gap as less reliable than for countries valued on disposable income; where an official price index understates how far prices have risen, the gap overstates how cheap the market is. The expected change uses momentum only.</p>` : '';
+    return `${proxy}<div class="g g2">${U.panel('Price against model fair value', `real index, latest price = 100 · fair value from ${esc(V.basisShort(r))} and borrowing cost`, '<div class="chart" id="cs-fv"></div>')}
+        ${U.panel('Outlook and affordability', sub, dl)}</div>
+      ${U.panel('What moved fair value', 'percent over each window', `<div class="tw"><table class="tbl"><thead><tr><th class="l ns">Over</th><th class="ns" title="Contribution of real income per head">Income</th><th class="ns" title="Contribution of the lending rate through the annuity factor">Borrowing cost</th><th class="ns">Fair value</th><th class="ns">Real price</th><th class="ns" title="Change in the model gap, points">Gap, pts</th></tr></thead><tbody>${rows}</tbody></table></div>
+        <p class="note" style="padding:0 14px 12px">Fair value moves with real income per head (slope ${fmt.fx(B.y, 2)}) and with the cost of a loan (slope ${fmt.sg(B.a, 2)} on the annuity factor). The gap widens when the price outruns the two.${r.fv_tier === 1 && r.fv_rolled ? ` Income is published later than prices: its last ${r.fv_rolled} quarter${r.fv_rolled > 1 ? 's are' : ' is'} carried forward at its recent pace.` : ''}</p>`, { flush: true })}`;
+  }
+
   // ------------------------------------------------------------------------------------------ country
   REI.route('/country/:iso', async (app, { iso }) => {
     iso = iso.toUpperCase();
     const v = await REI.val(), r = v.countries.find(c => c.iso2 === iso);
     if (!r) throw new Error(`No country ${iso} in the valuation table`);
-    const d = await REI.vcountry(iso), nm = V.names(v), ratio = r.basis === 'ratios';
+    const d = await REI.vcountry(iso), nm = V.names(v), ratio = V.valued(r), mdl = r.basis === 'model';
+    const hasM = ['pir', 'prr', 'pti', 'ptr'].some(k => has((d.measures || {})[k]));
     const cities = v.cities.filter(c => c.country === iso), mapped = cities.filter(c => ok(c.lat) && !c.stale);
     const m0 = mapped.some(c => ok(c.gap)) ? 'gap' : 'real';            // no valued city yet: colour by price change
     const rn = d.rate_note || {};
     const lendTxt = r.lend_basis === 'mortgage' ? 'published mortgage rate' : r.lend_basis ? `10-year yield + ${fmt.fx(r.spread || rn.spread, 1)} points` : 'no rate series';
-    app.innerHTML = U.head(esc(r.name), `${esc(r.region || '')} · ${ratio ? `fair value from ${r.n} measures` : 'no income or rent ratios: gap to own real price trend'} · prices through ${fmt.qtr(r.price_through || r.through)}`,
+    app.innerHTML = U.head(esc(r.name), `${esc(r.region || '')} · ${mdl ? `fair value from the model on ${esc(V.basisShort(r))}` : ratio ? `fair value from ${r.n} measures` : 'outside the model: gap to own real price trend'} · prices through ${fmt.qtr(r.price_through || r.through)}`,
       `${U.chips(r.flags)}${r.stale ? '<br>' + U.badge(`Stale: data ends ${fmt.qtr(r.through)}`, 1) : ''}`, `<a href="#/countries">Countries</a> › ${esc(r.name)}`) +
       U.kpis([
-        { k: ratio ? 'Fair-value gap' : 'Gap to trend', v: U.sgn(r.gap, 1, '%'), cls: V.gapCls(r.gap), s: ratio ? `measures ${fmt.pct(r.lo, 0)} to ${fmt.pct(r.hi, 0)} · Δ1y ${fmt.sg(r.gap_1y, 1)}` : 'real price against its 20-year trend', sp: U.spark((d.gap || []).slice(-40)) },
+        { k: ratio ? 'Fair-value gap' : 'Gap to trend', v: U.sgn(r.gap, 1, '%'), cls: V.gapCls(r.gap), s: ratio ? `${mdl ? 'slopes' : 'measures'} ${fmt.pct(r.lo, 0)} to ${fmt.pct(r.hi, 0)} · Δ1y ${fmt.sg(r.gap_1y, 1)}` : 'real price against its 20-year trend', sp: U.spark((d.gap || []).slice(-40)) },
         ratio ? { k: 'Percentile', v: U.num(r.pct, 0), s: 'of its own history (100 = richest)' } : null,
+        mdl && ok(r.ratio_gap) ? { k: 'Four-ratio composite', v: U.sgn(r.ratio_gap, 1, '%'), cls: V.gapCls(r.ratio_gap), s: `${r.ratio_n} measures ${fmt.pct(r.ratio_lo, 0)} to ${fmt.pct(r.ratio_hi, 0)}${r.ratio_stale ? ' · stale' : ''}`,
+          t: 'The older measure: the average of price to income, price to rent and the two payment ratios, each against its own long-run mean' } : null,
+        ok(r.exp_1y) ? { k: 'Expected real change, 1 year', v: U.chg(r.exp_1y), s: `past errors ${fmt.sg(r.exp_1y_lo, 0)} to ${fmt.sg(r.exp_1y_hi, 0)}${ok(r.exp_3y) ? ` · 3 years ${fmt.sg(r.exp_3y, 1)}% a year` : ''}`,
+          t: `Model estimate from ${r.exp_basis}. The range is the 10th to 90th percentile of past forecast errors; the record is on the Model page.` } : null,
         { k: 'Real price, 1 year', v: U.chg(r.real_1y), s: `5 years ${fmt.pct(r.real_5y)} a year · nominal 1y ${fmt.pct(r.nominal_1y)}`, sp: U.spark((d.real || []).slice(-40)) },
         { k: 'From 10-year peak', v: U.chg(r.dd10), s: `vol ${fmt.fx(r.vol, 1)}% · half-life ${ok(r.half_life) ? fmt.fx(r.half_life, 1) + 'y' : '–'}` },
         { k: 'Lending rate', v: U.num(r.lend, 2, '%'), s: `${esc(lendTxt)} · Δ3y ${fmt.sg(r.lend_3y, 2)}`, sp: U.spark((d.rate || []).slice(-40)) },
@@ -27,33 +66,38 @@
         has(d.dsr) || has(d.credit_gap) ? { k: 'Debt service', v: U.num(r.dsr, 1, '%'), s: `${fmt.sg(r.dsr_dev, 1)} vs mean · credit gap ${fmt.sg(r.credit_gap, 1)}` } : null,
         has(d.unemp) ? { k: 'Unemployment', v: U.num(r.unemp, 1, '%'), s: `Δ1y ${fmt.sg(r.unemp_1y, 1)} · CPI ${fmt.fx(r.cpi_yoy, 1)}%` } : null,
       ]) +
-      `<div class="g g2">${U.panel(ratio ? 'Fair-value gap' : 'Gap to trend', ratio ? 'composite, the range of its measures shaded, and the gap as it was known at the time' : '% above or below the real price trend', '<div class="chart" id="cs-g"></div>')}
-        ${ratio ? U.panel('The four measures', '% from each ratio\'s own long-run mean', '<div class="chart" id="cs-m"></div>') : U.panel('Real price and trend', 'index, latest = 100', '<div class="chart" id="cs-t"></div>')}</div>
-      <div class="g g2">${ratio ? U.panel('Real price and trend', 'index, latest = 100', '<div class="chart" id="cs-t"></div>') : ''}${U.panel('Rates', '%', '<div class="chart" id="cs-r"></div>')}${ratio ? '' : U.panel('Inflation', 'CPI, % on a year earlier', '<div class="chart" id="cs-i"></div>')}</div>
+      `<div class="g g2">${U.panel(ratio ? 'Fair-value gap' : 'Gap to trend', mdl ? 'the model: its range across re-estimated slopes shaded, and the gap as it was known at the time' : ratio ? 'composite, the range of its measures shaded, and the gap as it was known at the time' : '% above or below the real price trend', '<div class="chart" id="cs-g"></div>')}
+        ${hasM ? U.panel('The four ratios', '% from each ratio\'s own long-run mean · dotted: their average', '<div class="chart" id="cs-m"></div>') : U.panel('Real price and trend', 'index, latest = 100', '<div class="chart" id="cs-t"></div>')}</div>
+      <div class="g g2">${hasM ? U.panel('Real price and trend', 'index, latest = 100', '<div class="chart" id="cs-t"></div>') : ''}${U.panel('Rates', '%', '<div class="chart" id="cs-r"></div>')}${hasM ? '' : U.panel('Inflation', 'CPI, % on a year earlier', '<div class="chart" id="cs-i"></div>')}</div>
+      ${modelBlock(r, d, v)}
       <div class="g g3">${has(d.credit_gap) ? U.panel('Credit-to-GDP gap', 'points (BIS)', '<div class="chart short" id="cs-c"></div>') : ''}${has(d.dsr) ? U.panel('Debt service ratio', `% of income (${esc(r.dsr_kind || 'BIS')})`, '<div class="chart short" id="cs-d"></div>') : ''}
-        ${has(d.unemp) ? U.panel('Unemployment', '%', '<div class="chart short" id="cs-u"></div>') : ''}${ratio && has(d.cpi_yoy) ? U.panel('Inflation', 'CPI, % on a year earlier', '<div class="chart short" id="cs-i"></div>') : ''}${has(d.hh_credit) ? U.panel('Household credit', '% of GDP', '<div class="chart short" id="cs-h"></div>') : ''}</div>
+        ${has(d.unemp) ? U.panel('Unemployment', '%', '<div class="chart short" id="cs-u"></div>') : ''}${hasM && has(d.cpi_yoy) ? U.panel('Inflation', 'CPI, % on a year earlier', '<div class="chart short" id="cs-i"></div>') : ''}${has(d.hh_credit) ? U.panel('Household credit', '% of GDP', '<div class="chart short" id="cs-h"></div>') : ''}${has(d.rti) ? U.panel('Rent to income', '% from its own mean · the renter\'s burden', '<div class="chart short" id="cs-ri"></div>') : ''}</div>
       ${mapped.length > 1 ? `<section class="pnl"><div class="pnl-h"><h2>Cities in ${esc(r.name)}: map</h2><span class="hs">${mapped.length} cities · click a city</span></div>
         <div class="map-ctl">${U.seg('cs-mm', Object.entries(V.MAPM).map(([k, m]) => [k, m.label]), m0)}<span class="legend" id="cs-lg"></span></div><div class="map" id="cs-map"></div></section>` : ''}
-      ${cities.length ? U.panel(`Cities in ${r.name}`, `${cities.length} · implied gap = country gap plus the city's premium against its own mean`, '<div id="cs-k"></div>', { flush: true }) : ''}
+      ${cities.length ? U.panel(`Cities in ${r.name}`, `${cities.length} · implied gap = country gap compounded with the city's premium against its own mean`, '<div id="cs-k"></div>', { flush: true }) : ''}
       ${has(d.pig) ? U.panel(`Price to ${esc((d.pig_basis || 'GDP per head').toLowerCase())}`, '% from its own mean · descriptive, not part of the gap', '<div class="chart short" id="cs-pg"></div>') +
         `<p class="note caveat"><b>Read with care.</b> No price-to-income ratio is published for ${esc(r.name)}. This is the national price index over ${esc((d.pig_basis || 'GDP per head').toLowerCase())} (${d.pig_basis === 'GDP per head' ? 'World Bank, annual' : 'national statistics, annual'}), against its own mean. Where incomes have grown much faster than the price index it simply trends down, so it is shown for reference and is not used in the gap, the flags or the rankings.${r.deflated ? ` Real prices here are the nominal series deflated by ${esc(r.deflated)}.` : ''}${r.national_source ? ` National series: ${esc(r.national_source)}.` : ''}</p>` : ''}
       <p class="note">Lending rate: ${esc(lendTxt)}${rn.from ? ` (series from ${esc(fmt.qtr(rn.from))})` : ''}. ${ratio ? 'Measures: price to income, price to rent, mortgage payment to income and to rent, each against its own long-run mean.' : ''} The point-in-time line recomputes the gap each quarter with only the data available then; the gap to that line is how much hindsight changes the picture. <a href="#/methodology">Methodology</a>.</p>`;
     const p = REI.pal(), q = d.q;
-    if (ratio) {
-      C.lines('cs-g', [{ x: q, y: d.gap, name: 'Composite gap' }, { x: q, y: d.gap_pit, name: 'As known at the time', color: p.neutral, dash: 'dot', width: 1.5 }],
-        { suffix: '%', zero: true, band: { x: q, lo: d.lo, hi: d.hi, name: 'Range of measures' } });
+    if (ratio) C.lines('cs-g', [{ x: q, y: d.gap, name: mdl ? 'Model gap' : 'Composite gap' }, { x: q, y: d.gap_pit, name: 'As known at the time', color: p.neutral, dash: 'dot', width: 1.5 }],
+      { suffix: '%', zero: true, band: { x: q, lo: d.lo, hi: d.hi, name: mdl ? 'Range across slopes' : 'Range of measures' } });
+    else C.lines('cs-g', [{ x: q, y: d.trend_gap }], { suffix: '%', zero: true });
+    if (hasM) {
       const M = [['pir', 'Price/income'], ['prr', 'Price/rent'], ['pti', 'Payment/income'], ['ptr', 'Payment/rent']].filter(([k]) => has(d.measures[k]));
-      C.lines('cs-m', M.map(([k, n], i) => ({ x: q, y: d.measures[k], name: n, color: p.cat[i], width: 1.6 })), { suffix: '%', zero: true });
-    } else C.lines('cs-g', [{ x: q, y: d.trend_gap }], { suffix: '%', zero: true });
+      const comp = mdl ? (d.ratio || {}).gap : d.gap;
+      C.lines('cs-m', M.map(([k, n], i) => ({ x: q, y: d.measures[k], name: n, color: p.cat[i], width: 1.6 })).concat(has(comp) ? [{ x: q, y: comp, name: 'Composite', color: p.ink, dash: 'dot', width: 1.6 }] : []), { suffix: '%', zero: true });
+    }
     C.lines('cs-t', [{ x: q, y: d.real, name: 'Real price' }, { x: q, y: d.trend, name: 'Trend', color: p.neutral, dash: 'dash', width: 1.5 }], {});
     const R = [['policy', 'Policy rate', true], ['long', '10-year yield'], ['rate', r.lend_basis === 'mortgage' ? 'Mortgage rate' : 'Lending rate (10y + spread)']].filter(([k]) => has(d[k]));
     C.lines('cs-r', R.map(([k, n, st], i) => ({ x: q, y: d[k], name: n, color: p.cat[i], step: st, fmt: '.2f' })), { suffix: '%' });
     if (has(d.credit_gap)) C.lines('cs-c', [{ x: q, y: d.credit_gap }], { zero: true, height: 200, hlines: [{ y: v.params.flags.credit_gap, text: 'boom flag' }] });
     if (has(d.dsr)) C.lines('cs-d', [{ x: q, y: d.dsr }], { suffix: '%', height: 200 });
     if (has(d.unemp)) C.lines('cs-u', [{ x: q, y: d.unemp }], { suffix: '%', height: 200 });
-    if (has(d.cpi_yoy)) C.lines('cs-i', [{ x: q, y: d.cpi_yoy }], { suffix: '%', zero: true, height: ratio ? 200 : 280 });
+    if (has(d.cpi_yoy)) C.lines('cs-i', [{ x: q, y: d.cpi_yoy }], { suffix: '%', zero: true, height: hasM ? 200 : 280 });
     if (has(d.pig)) C.lines('cs-pg', [{ x: q, y: d.pig }], { suffix: '%', zero: true, height: 200 });
     if (has(d.hh_credit)) C.lines('cs-h', [{ x: q, y: d.hh_credit }], { suffix: '%', height: 200 });
+    if (has(d.rti)) C.lines('cs-ri', [{ x: q, y: d.rti }], { suffix: '%', zero: true, height: 200 });
+    if (has(d.fv)) C.lines('cs-fv', [{ x: q, y: d.real, name: 'Real price' }, { x: q, y: d.fv, name: 'Model fair value', color: p.cat[1], width: 1.8 }], {});
     if (mapped.length > 1) {
       const mo = k => { const m = V.MAPM[k]; return { kind: m.kind, span: m.span, unit: m.unit, label: m.label, legend: U.$('cs-lg'), maxZoom: 9 }; };
       const mp = REI.map.points('cs-map', V.cityPts(mapped, m0, null), mo(m0));
@@ -61,7 +105,8 @@
     }
     if (cities.length) U.table('cs-k', { id: 'cs-k', sort: 'gap', dir: -1, limit: 40, rows: cities, rowCls: c => (c.stale ? 'stale' : ''), cols: [
       { k: 'name', h: 'City', l: 1, f: c => `<a href="#/city/${c.key}">${esc(c.name)}</a>${c.tier !== 'B' ? V.tag('sold records') : ''}${c.stale ? V.tag('stale') : ''}` },
-      { k: 'gap', h: 'Implied gap', f: c => U.gapBar(c.gap) }, { k: 'prem', h: 'Premium', f: c => U.sgn(c.prem, 0, '%') }, { k: 'prem_z', h: 'Premium z', f: c => U.zBar(c.prem_z) },
+      { k: 'gap', h: 'Implied gap', f: c => U.gapBar(c.gap) }, { k: 'exp_1y', h: 'Expected 1y', f: c => U.chg(c.exp_1y), t: 'Expected real change over the next year' },
+      { k: 'prem', h: 'Premium', f: c => U.sgn(c.prem, 0, '%') }, { k: 'prem_z', h: 'Premium z', f: c => U.zBar(c.prem_z) },
       { k: 'real_1y', h: 'Real 1y', f: c => U.chg(c.real_1y) }, { k: 'rel_mom', h: 'vs country', f: c => U.chg(c.rel_mom, 1, '') }, { k: 'dd10', h: 'From 10y peak', f: c => U.chg(c.dd10) },
       { k: 'yield', h: 'Yield', f: c => U.num(c.yield, 1, '%') }, { k: 'pti_years', h: 'Price/income', f: c => U.num(c.pti_years, 1, '×') }, { k: 'through', h: 'Through', f: V.through }] });
     setAttr('');
@@ -77,13 +122,15 @@
     const name = (r || s).name, iso = (r || s).country, cur = (s && s.currency) || (r && r.currency);
     const sold = s && s.tier !== 'B';
     const basisTxt = sold ? 'Repeat-sales index from the sold-price register' : s ? s.basis : '';
-    const R = r || {};
+    const R = r || {}, CR = v.countries.find(c => c.iso2 === iso) || {};
     const prov = s && s.provisional_from ? U.badge(`Provisional from ${fmt.month(s.provisional_from)}`, 1) : '';
     app.innerHTML = U.head(esc(name), `${esc(nm[iso] || iso)} · ${esc(basisTxt || '')}`,
       `${U.chips(R.flags)}<br>${U.badge('Through ' + (s ? fmt.month(s.data_through) : fmt.qtr(R.through)))} ${prov}`,
       `<a href="#/cities">Cities</a> › <a href="#/country/${iso}">${esc(nm[iso] || iso)}</a> › ${esc(name)}`) +
       U.kpis([
-        { k: 'Implied gap', v: U.sgn(R.gap, 1, '%'), cls: V.gapCls(R.gap), s: ok(R.c_gap) ? `country ${fmt.pct(R.c_gap, 0)}${R.c_basis === 'trend' ? ' (trend basis)' : ''}` : 'needs a valued country', t: 'Country fair-value gap plus the city premium\'s distance from its own mean' },
+        { k: 'Implied gap', v: U.sgn(R.gap, 1, '%'), cls: V.gapCls(R.gap), s: ok(R.c_gap) ? `country ${fmt.pct(R.c_gap, 0)}${R.c_basis === 'trend' ? ' (trend basis)' : R.fv_tier === 2 ? ' (proxy income)' : ''}${ok(R.ratio_gap) ? ` · on the four ratios ${fmt.pct(R.ratio_gap, 0)}` : ''}` : 'needs a valued country', t: 'The country\'s fair-value gap (from the model) compounded with the city premium\'s distance from its own mean' },
+        ok(R.exp_1y) ? { k: 'Expected real change, 1 year', v: U.chg(R.exp_1y), s: `country ${fmt.sg(R.exp_country, 1)} · city against it ${fmt.sg(R.exp_rel, 1)}${ok(R.exp_1y_lo) ? ` · past errors ${fmt.sg(R.exp_1y_lo, 0)} to ${fmt.sg(R.exp_1y_hi, 0)}` : ''}`,
+          t: 'Model estimate: the country\'s expected real change plus what the city\'s premium and its recent change against the country have meant for the following year. The record is on the Model page.' } : null,
         { k: 'Premium to country', v: U.sgn(R.prem, 1, '%'), s: `z ${fmt.sg(R.prem_z, 2)} · percentile ${fmt.fx(R.prem_pct, 0)}`, t: 'Real city index over the national index, against its own long-run mean' },
         { k: 'Real price, 1 year', v: U.chg(ok(R.real_1y) ? R.real_1y : null), s: `nominal ${fmt.pct(R.mom)} · vs country ${fmt.sg(R.rel_mom, 1)} pts` },
         { k: '3 years, a year', v: U.chg(R.mom_3y), s: `USD 1y ${fmt.pct(R.usd_1y)}` },
@@ -95,6 +142,7 @@
       ]) +
       (vk && has(vk.prem) ? `<div class="g g2">${U.panel('Premium to country', `% from its own mean · lines at ±1 and ±2 standard deviations (${fmt.fx(vk.prem_sd, 1)} pts)`, '<div class="chart" id="cy-p"></div>')}
         ${U.panel('Real price and trend', 'index, latest = 100', '<div class="chart" id="cy-t"></div>')}</div>` : '') +
+      cityLend(R, CR, v) +
       `<div id="cy-x"></div><div id="cy-d"></div><div id="cy-m"></div>` +
       (R.long_used ? `<p class="note">The current series is too short to value on its own, so the premium, trend and changes above use the city's longer published history: ${esc(R.long_used)}.</p>` : '') +
       (R.annual ? `<p class="note caveat"><b>Annual source.</b> This city is published once or twice a year. The quarters between published points lie on a straight line, so one-year changes are real but volatility, beta and the premium z-score are smoother than a quarterly series would give.</p>` : '') +
@@ -110,6 +158,20 @@
     cityMaps(U.$('cy-m'), key, R, v, vk, nm, sold);
     setAttr(s ? s.attribution : '');
   });
+
+  /* What the country's lending rate makes of the city's published price, rent and income levels, and where the price
+     stands against its own peak. */
+  function cityLend(R, CR, v) {
+    const P = v.params, tile = (kk, val, s) => `<div><div class="k">${kk}</div><div class="v">${val}</div><div class="s">${s}</div></div>`;
+    const loan = `${Math.round((P.ltv || 0.8) * 100)}% loan over ${P.term_years} years at ${fmt.fx(CR.lend, 2)}%`;
+    const tiles = [
+      ok(R.pay_share) ? tile('Mortgage payment to income', `${fmt.fx(R.pay_share, 0)}%`, `${loan} · ${esc(R.inc_basis || 'published income')}`) : '',
+      ok(R.own_rent) ? tile('Owning against renting', `${fmt.fx(R.own_rent, 2)}×`, `the same payment over the annual rent · above 1 the loan costs more than renting`) : '',
+      ok(R.carry) ? tile('Yield less lending rate', `${fmt.sg(R.carry, 2)} <small>pts</small>`, `gross yield ${fmt.fx(R.yield, 2)}% against a lending rate of ${fmt.fx(CR.lend, 2)}%`) : '',
+      ok(R.uw_q) ? tile(R.peak_real ? 'Real price peak' : 'Price peak', R.uw_q === 0 ? 'Now' : esc(fmt.qtr(R.peak)), R.uw_q === 0 ? 'the index is at its highest' : `${fmt.fx(R.uw_q / 4, 1)} years ago · ${fmt.pct(R.peak_real && ok(R.real_dd) ? R.real_dd : R.dd, 1)} from it${ok(R.up8) ? ` · rose in ${R.up8} of the last 8 quarters` : ''}`) : '',
+    ].filter(Boolean);
+    return tiles.length ? U.panel('At today\'s lending rate, and against the peak', ok(R.pay_share) || ok(R.own_rent) ? 'compare cities inside one country: income and rent definitions differ across countries' : '', `<div class="ev">${tiles.join('')}</div>`) : '';
+  }
 
   /* Maps for a city page. Sold-record cities already draw hexagons from their own sales. Index-only cities get their
      districts as points where a gazetteer places them (US ZIP codes), and every city gets a map of where it sits among
