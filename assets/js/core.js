@@ -1,6 +1,6 @@
-/* Core: state, hash routing, loaders (JSON and gzip shards), formatting, search. */
+/* Core: state, hash routing, loaders (JSON and gzip shards), theme and palette, formatting, search. */
 window.REI = (function () {
-  const state = { meta: null, cities: {}, areas: {}, sales: {}, h3: {}, route: null };
+  const state = { meta: null, cities: {}, areas: {}, sales: {}, h3: {}, misc: {}, view: {} };
   const DATA = 'data/';
   // sold-record cities are served from regional data repos (their own Pages sites); meta.json carries each base
   function url(path) {
@@ -41,66 +41,107 @@ window.REI = (function () {
     for (const s of shards) for (const r of s.rows) rows.push(Object.fromEntries(s.cols.map((c, i) => [c, r[i]])));
     return rows;
   }
+  // the valuation layer and the older cross-section payload
+  const val = () => memo('misc', 'val', () => getJSON('valuation.json'));
+  const micro = () => memo('misc', 'micro', () => getJSON('valuation_micro.json'));
+  const dash = () => memo('misc', 'dash', () => getJSON('dashboard.json'));
+  const vcountry = iso => memo('misc', `vc/${iso}`, () => getJSON(`valuation/countries/${iso}.json`));
+  const vcity = k => memo('misc', `vk/${k}`, () => getJSON(`valuation/cities/${k}.json`));
 
   const safe = s => String(s).replace(/ /g, '_').replace(/\//g, '-');
+  const ok = v => v != null && !isNaN(v);
   const fmt = {
-    money(v, cur) { if (v == null || isNaN(v)) return '–'; const sym = { GBP: '£', USD: '$', EUR: '€', AUD: 'A$', SGD: 'S$', AED: 'AED ' }[cur] || ''; return sym + Math.round(v).toLocaleString('en-GB'); },
-    moneyK(v, cur) { if (v == null || isNaN(v)) return '–'; const sym = { GBP: '£', USD: '$', EUR: '€' }[cur] || ''; return v >= 1e6 ? `${sym}${(v / 1e6).toFixed(2)}m` : `${sym}${Math.round(v / 1e3)}k`; },
-    pct(v, d = 1) { if (v == null || isNaN(v)) return '–'; const s = v > 0 ? '+' : ''; return `${s}${v.toFixed(d)}%`; },
-    num(v) { return v == null || isNaN(v) ? '–' : Math.round(v).toLocaleString('en-GB'); },
-    cls(v) { return v == null || isNaN(v) ? 'mute' : v >= 0 ? 'pos' : 'neg'; },
+    money(v, cur) { if (!ok(v)) return '–'; const sym = { GBP: '£', USD: '$', EUR: '€', AUD: 'A$', SGD: 'S$', AED: 'AED ' }[cur] || ''; return sym + Math.round(v).toLocaleString('en-GB'); },
+    moneyK(v, cur) { if (!ok(v)) return '–'; const sym = { GBP: '£', USD: '$', EUR: '€' }[cur] || ''; return v >= 1e6 ? `${sym}${(v / 1e6).toFixed(2)}m` : `${sym}${Math.round(v / 1e3)}k`; },
+    pct(v, d = 1) { if (!ok(v)) return '–'; return `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(d)}%`; },
+    sg(v, d = 1) { if (!ok(v)) return '–'; return `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(d)}`; },
+    fx(v, d = 1) { return ok(v) ? (v < 0 ? '−' : '') + Math.abs(v).toFixed(d) : '–'; },
+    num(v) { return ok(v) ? Math.round(v).toLocaleString('en-GB') : '–'; },
+    cls(v) { return !ok(v) || v === 0 ? '' : v > 0 ? 'pos' : 'neg'; },
     date(s) { return s ? s.slice(0, 10) : '–'; },
-    month(p) { if (!p) return '–'; const [y, m] = p.split('-'); return new Date(+y, +m - 1, 1).toLocaleString('en-GB', { month: 'short', year: 'numeric' }); },
+    month(p) { if (!p) return '–'; if (/Q\d$/.test(p)) return p.replace(/(\d{4})Q(\d)/, 'Q$2 $1'); const [y, m] = p.split('-'); return new Date(+y, +m - 1, 1).toLocaleString('en-GB', { month: 'short', year: 'numeric' }); },
+    qtr(p) { return p ? String(p).replace(/(\d{4})Q(\d)/, 'Q$2 $1') : '–'; },
     ptype(t) { return { detached: 'Detached', semi: 'Semi-detached', terraced: 'Terraced', apartment: 'Flat', land: 'Land', other: 'Other' }[t] || t || '–'; },
     own(o) { return { fee_simple: 'Freehold', leasehold: 'Leasehold', condo: 'Condo', coop: 'Co-op', strata: 'Strata', hdb_lease: 'HDB lease' }[o] || ''; },
   };
+  /* '2026Q2' -> '2026-05-15' (mid-quarter) and '2026-06' passes through: one date axis for quarterly and monthly series */
+  const q2d = p => { const m = /^(\d{4})Q(\d)$/.exec(p); return m ? `${m[1]}-${String(m[2] * 3 - 1).padStart(2, '0')}-15` : p; };
   const el = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // ---------------------------------------------------------------- theme and palette
+  const PAL = {
+    dark: { panel: '#14171c', panel2: '#1a1e24', line: '#262b33', grid: '#20252c', axis: '#3a414c', ink: '#e6e8eb', ink2: '#a9b0ba', mute: '#7b838f',
+      cheap: '#4a9be8', rich: '#e8a23a', mid: '#444a53', up: '#35b58a', down: '#e5604d', neutral: '#8a919c',
+      cat: ['#4a9be8', '#e8a23a', '#35b58a', '#a78bfa'], land: '#1d2127', nodata: '#2a2f37' },
+    light: { panel: '#ffffff', panel2: '#f7f7f4', line: '#dcdcd6', grid: '#ecece7', axis: '#bfc0b9', ink: '#15181c', ink2: '#4a5059', mute: '#6b717b',
+      cheap: '#2f6fbe', rich: '#b87400', mid: '#c9cbcf', up: '#17805c', down: '#c0392b', neutral: '#7d838c',
+      cat: ['#2f6fbe', '#b87400', '#17805c', '#6d4fc4'], land: '#ebebe6', nodata: '#dcdcd6' },
+  };
+  const theme = () => (document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
+  const pal = () => PAL[theme()];
+  const rgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+  function setupTheme() {
+    const b = document.getElementById('theme-btn');
+    if (!b) return;
+    const label = () => { b.textContent = theme() === 'dark' ? 'Light' : 'Dark'; };
+    label();
+    b.addEventListener('click', () => {
+      const t = theme() === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+      try { localStorage.setItem('rei-theme', t); } catch (e) { /* private window: the choice lasts for this view */ }
+      label(); dispatch(true);
+    });
+  }
 
   // ---------------------------------------------------------------- routing
   const routes = [];
   function route(pattern, handler) { routes.push({ re: new RegExp('^' + pattern.replace(/:(\w+)/g, '(?<$1>[^/]+)') + '$'), handler }); }
-  async function dispatch() {
+  const TAB_OF = { country: 'countries', city: 'cities', area: 'cities', sold: 'cities' };
+  async function dispatch(keepScroll) {
     const hash = location.hash.replace(/^#/, '') || '/';
     const app = document.getElementById('app');
+    const seg = hash.split('/')[1] || '';
+    const tab = TAB_OF[seg] || seg;
+    const tabs = document.querySelectorAll ? document.querySelectorAll('#nav .tab') : [];
+    for (const t of tabs) t.classList.toggle('on', t.dataset.tab === tab);
     for (const r of routes) {
       const m = hash.match(r.re);
       if (m) {
-        app.innerHTML = '<div class="loading">Loading…</div>';
+        if (keepScroll !== true) app.innerHTML = '<div class="loading">Loading…</div>';
         try { await r.handler(app, Object.fromEntries(Object.entries(m.groups || {}).map(([k, v]) => [k, decodeURIComponent(v)]))); }
-        catch (e) { app.innerHTML = `<div class="card"><h2>Could not load this page</h2><p class="note">${esc(e.message)}</p></div>`; console.error(e); }
-        window.scrollTo(0, 0);
+        catch (e) { app.innerHTML = `<div class="pnl"><div class="pnl-h"><h2>Could not load this page</h2></div><div class="pnl-b"><p class="note">${esc(e.message)}</p></div></div>`; console.error(e); }
+        if (keepScroll !== true) window.scrollTo(0, 0);
         return;
       }
     }
-    app.innerHTML = '<div class="card"><h2>Not found</h2></div>';
+    app.innerHTML = '<div class="pnl"><div class="pnl-h"><h2>Not found</h2></div><div class="pnl-b"><p class="note">No page at this address. <a href="#/">Back to the overview</a>.</p></div></div>';
   }
+  const redirect = (from, to) => route(from, async () => { location.hash = '#' + to; });
 
-  // ---------------------------------------------------------------- search
+  // ---------------------------------------------------------------- search (countries and cities, from the valuation table)
   function setupSearch() {
     const q = document.getElementById('q'), out = document.getElementById('q-results');
-    let items = [];
+    if (!q || !out) return;
+    let items = null;
     const build = async () => {
-      items = [];
-      for (const c of state.meta.cities) {
-        const s = await city(c.key);
-        items.push({ t: s.name, k: `#/city/${c.key}`, m: 'city' });
-        for (const a of s.areas) items.push({ t: a.name === a.code ? a.code : `${a.name} (${a.code})`, k: `#/area/${c.key}/${encodeURIComponent(a.code)}`, m: `${s.name} · ${a.level}`, code: a.code.toLowerCase() });
-      }
+      const v = await val();
+      items = v.countries.map(c => ({ t: c.name, k: `#/country/${c.iso2}`, m: 'country', x: (c.name + ' ' + c.iso2).toLowerCase() }))
+        .concat(v.cities.map(c => ({ t: c.name, k: `#/city/${c.key}`, m: c.country, x: (c.name + ' ' + c.key.replace(/_/g, ' ')).toLowerCase() })));
     };
-    build();
+    q.addEventListener('focus', () => { if (!items) build().catch(() => { items = []; }); if (q.value.trim()) out.style.display = 'block'; });
     q.addEventListener('input', () => {
       const v = q.value.trim().toLowerCase();
-      if (!v) { out.style.display = 'none'; return; }
-      const hits = items.filter(i => i.t.toLowerCase().includes(v) || (i.code && i.code.startsWith(v))).slice(0, 12);
-      out.innerHTML = hits.map(h => `<a href="${h.k}">${esc(h.t)}<small>${esc(h.m)}</small></a>`).join('') || '<a>No matches</a>';
+      if (!v || !items) { out.style.display = 'none'; return; }
+      const hits = items.filter(i => i.x.includes(v)).sort((a, b) => (a.x.startsWith(v) ? 0 : 1) - (b.x.startsWith(v) ? 0 : 1)).slice(0, 14);
+      out.innerHTML = hits.map(h => `<a href="${h.k}"><span>${esc(h.t)}</span><small>${esc(h.m)}</small></a>`).join('') || '<a><span>No matches</span></a>';
       out.style.display = 'block';
     });
+    q.addEventListener('keydown', e => { if (e.key === 'Enter') { const a = out.querySelector('a[href]'); if (a) { location.hash = a.getAttribute('href'); q.value = ''; out.style.display = 'none'; q.blur(); } } });
     q.addEventListener('blur', () => setTimeout(() => (out.style.display = 'none'), 150));
-    q.addEventListener('focus', () => { if (q.value.trim()) out.style.display = 'block'; });
   }
 
-  /* Same guard for pages that call Plotly directly (country.js, liquidity and tiers blocks in pages.js). */
+  /* If the charting library failed to load, show a notice in the chart slot instead of throwing and blanking the page. */
   if (typeof window.Plotly === 'undefined') {
     window.addEventListener('load', () => {
       if (typeof window.Plotly === 'undefined') window.Plotly = { newPlot(div) {
@@ -112,10 +153,14 @@ window.REI = (function () {
 
   async function start() {
     state.meta = await getJSON('meta.json');
+    setupTheme();
     setupSearch();
-    window.addEventListener('hashchange', dispatch);
+    const a = document.getElementById('asof-top');
+    if (a && state.meta.built) a.textContent = `Built ${state.meta.built}`;
+    window.addEventListener('hashchange', () => dispatch());
     dispatch();
   }
 
-  return { state, getJSON, getGz, city, area, h3layer, salesIndex, salesShard, salesDistrict, fmt, el, esc, route, start, safe, __dispatch: dispatch };
+  return { state, getJSON, getGz, city, area, h3layer, salesIndex, salesShard, salesDistrict, val, micro, dash, vcountry, vcity,
+    fmt, ok, q2d, el, esc, route, redirect, start, safe, theme, pal, rgba, __dispatch: dispatch };
 })();

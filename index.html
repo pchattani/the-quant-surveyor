@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>The Quant Surveyor · Global residential real estate</title>
-<meta name="description" content="The Quant Surveyor, part of The Quant Macro: global residential real estate. Repeat-sales indices from open sold-price registers to the neighbourhood, official city and district indices worldwide, real prices, valuation and exuberance for every country with data.">
+<title>The Quant Surveyor · Global residential valuation</title>
+<meta name="description" content="The Quant Surveyor, part of The Quant Macro: a global residential real estate valuation tool. Fair-value gaps for countries, premiums and implied gaps for cities, relative value for districts, with rates, credit and the measured record of each signal.">
+<script>try { var t = localStorage.getItem('rei-theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <link rel="stylesheet" href="assets/style.css">
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"
@@ -24,39 +25,41 @@
       <span class="mark" aria-hidden="true"></span>
       <div>
         <h1>The Quant <b>Surveyor</b></h1>
-        <p class="sub" id="brand-sub">The Quant Macro · global residential real estate · cities, districts, countries</p>
+        <p class="sub" id="brand-sub">Global residential valuation · countries, cities, districts</p>
       </div>
     </a>
     <div class="topbar-right">
       <div class="asof-top" id="asof-top"></div>
-      <div class="search"><input id="q" type="search" placeholder="Search city, area or postcode district" autocomplete="off" aria-label="Search"><div id="q-results" class="q-results"></div></div>
+      <div class="search"><input id="q" type="search" placeholder="Search country or city" autocomplete="off" aria-label="Search"><div id="q-results" class="q-results"></div></div>
+      <button class="theme-btn" id="theme-btn" type="button" aria-label="Switch between dark and light">Light</button>
     </div>
   </div>
 </header>
 <nav class="tabs" aria-label="Sections">
   <div class="tabs-inner" id="nav" role="tablist">
-    <a class="tab" role="tab" data-tab="/" href="#/">Monitor</a>
-    <a class="tab" role="tab" data-tab="/screen" href="#/screen">Screen</a>
-    <a class="tab" role="tab" data-tab="/health" href="#/health">Health</a>
-    <a class="tab" role="tab" data-tab="/macro" href="#/macro">Macro</a>
-    <a class="tab" role="tab" data-tab="/xsection" href="#/xsection">Cross-section</a>
-    <a class="tab" role="tab" data-tab="/micro" href="#/micro">Micro</a>
-    <a class="tab" role="tab" data-tab="/cities" href="#/cities">Cities</a>
-    <a class="tab" role="tab" data-tab="/countries" href="#/countries">Countries</a>
-    <a class="tab" role="tab" data-tab="/methodology" href="#/methodology">Methodology</a>
+    <a class="tab" role="tab" data-tab="" href="#/">Overview</a>
+    <a class="tab" role="tab" data-tab="countries" href="#/countries">Countries</a>
+    <a class="tab" role="tab" data-tab="cities" href="#/cities">Cities</a>
+    <a class="tab" role="tab" data-tab="micro" href="#/micro">Districts</a>
+    <a class="tab" role="tab" data-tab="cycle" href="#/cycle">Cycle &amp; risk</a>
+    <a class="tab" role="tab" data-tab="returns" href="#/returns">Returns</a>
+    <a class="tab" role="tab" data-tab="evidence" href="#/evidence">Evidence</a>
+    <a class="tab" role="tab" data-tab="methodology" href="#/methodology">Methodology</a>
   </div>
 </nav>
-<div class="ticker" id="ticker" aria-label="Movers" hidden></div>
 <main id="app"><div class="loading">Loading…</div></main>
-<footer class="foot"><div class="in"><b>The Quant Surveyor</b> · part of The Quant Macro with The Quant Governor and The Quant Barometer · open sold-price registers and official statistics; nothing here is a valuation or investment advice. <span id="attribution"></span></div></footer>
+<footer class="foot"><div class="in"><b>The Quant Surveyor</b> · part of The Quant Macro · open sold-price registers and official statistics. Fair-value gaps are positions against each market's own history, not forecasts; nothing here is a valuation of a property or investment advice. <span id="attribution"></span></div></footer>
 <script src="assets/qm-family.js" data-site="surveyor"></script>
 <script src="assets/js/core.js"></script>
 <script src="assets/js/charts.js"></script>
+<script src="assets/js/ui.js"></script>
 <script src="assets/js/map.js"></script>
+<script src="assets/js/views.js"></script>
+<script src="assets/js/screens.js"></script>
+<script src="assets/js/macro.js"></script>
+<script src="assets/js/method.js"></script>
+<script src="assets/js/tearsheets.js"></script>
 <script src="assets/js/pages.js"></script>
-<script src="assets/js/country.js"></script>
-<script src="assets/js/dashboard.js"></script>
-<script src="assets/js/signals.js"></script>
 <script>REI.start();</script>
 </body>
 </html>
