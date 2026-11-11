@@ -1,16 +1,21 @@
 <!doctype html>
-<html lang="en" data-macro-site="surveyor">
+<html lang="en" data-macro-site="surveyor" data-v="e43295155134">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The Quant Surveyor · Global residential valuation</title>
 <meta name="description" content="The Quant Surveyor, part of The Quant Macro: a global residential real estate valuation tool. Fair-value gaps for countries, premiums and implied gaps for cities, relative value for districts, with rates, credit and the measured record of each signal.">
 <script>try { var t = localStorage.getItem('rei-theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}</script>
+<script>/* A deployed copy carries data-v, the hash of its scripts and styles. If the server's hash is newer, this HTML came from cache: reload once at a fresh URL so scripts and data match. */
+(function () { var v = document.documentElement.getAttribute('data-v'); if (!v || !window.fetch) return;
+  fetch('assets/version.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+    if (!j || !j.v || j.v === v) return; var q = new URLSearchParams(location.search); if (q.get('v') === j.v) return;
+    q.set('v', j.v); location.replace(location.pathname + '?' + q.toString() + location.hash); }).catch(function () {}); })();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/style.css?v=e43295155134">
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"
         onerror="var s=document.createElement('script');s.src='https://unpkg.com/plotly.js-dist-min@2.35.2/plotly.min.js';document.head.appendChild(s);"></script>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"
@@ -54,18 +59,18 @@
 <div class="ticker" id="ticker" hidden></div>
 <main id="app"><div class="loading">Loading…</div></main>
 <footer class="foot"><div class="in"><b>The Quant Surveyor</b> · part of The Quant Macro · open sold-price registers and official statistics. Fair-value gaps are positions against each market's own history; expected changes are model estimates for a whole market, shown with their error range and record. Nothing here is a valuation of a property or investment advice. <span id="attribution"></span></div></footer>
-<script src="assets/qm-family.js" data-site="surveyor"></script>
-<script src="assets/js/core.js"></script>
-<script src="assets/js/charts.js"></script>
-<script src="assets/js/ui.js"></script>
-<script src="assets/js/map.js"></script>
-<script src="assets/js/views.js"></script>
-<script src="assets/js/screens.js"></script>
-<script src="assets/js/macro.js"></script>
-<script src="assets/js/model.js"></script>
-<script src="assets/js/method.js"></script>
-<script src="assets/js/tearsheets.js"></script>
-<script src="assets/js/pages.js"></script>
+<script src="assets/qm-family.js?v=e43295155134" data-site="surveyor"></script>
+<script src="assets/js/core.js?v=e43295155134"></script>
+<script src="assets/js/charts.js?v=e43295155134"></script>
+<script src="assets/js/ui.js?v=e43295155134"></script>
+<script src="assets/js/map.js?v=e43295155134"></script>
+<script src="assets/js/views.js?v=e43295155134"></script>
+<script src="assets/js/screens.js?v=e43295155134"></script>
+<script src="assets/js/macro.js?v=e43295155134"></script>
+<script src="assets/js/model.js?v=e43295155134"></script>
+<script src="assets/js/method.js?v=e43295155134"></script>
+<script src="assets/js/tearsheets.js?v=e43295155134"></script>
+<script src="assets/js/pages.js?v=e43295155134"></script>
 <script>REI.start();</script>
 </body>
 </html>
