@@ -91,6 +91,7 @@
         { k: 'Beta to country', v: U.num(R.beta, 2), s: `correlation ${fmt.fx(R.corr, 2)}` },
         ok(R.yield) ? { k: 'Gross yield', v: U.num(R.yield, 2, '%'), s: `${fmt.sg(R.yield_spread, 2)} over the 10-year` } : null,
         ok(R.pti_years) ? { k: 'Price to income', v: U.num(R.pti_years, 1, '×'), s: esc(R.inc_basis || '') } : null,
+        ok(R.wage_m2) ? { k: 'A year of income buys', v: U.num(R.wage_m2, 1, ' m²'), s: `${esc(R.inc_basis || '')} · ${R.wage_m2_year}` + (ok(R.price_psm) ? ` · ${fmt.money(R.price_psm, cur)}/m² (${R.price_psm_year})` : '') } : null,
       ]) +
       (vk && has(vk.prem) ? `<div class="g g2">${U.panel('Premium to country', `% from its own mean · lines at ±1 and ±2 standard deviations (${fmt.fx(vk.prem_sd, 1)} pts)`, '<div class="chart" id="cy-p"></div>')}
         ${U.panel('Real price and trend', 'index, latest = 100', '<div class="chart" id="cy-t"></div>')}</div>` : '') +

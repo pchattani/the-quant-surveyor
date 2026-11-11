@@ -59,7 +59,8 @@
       { k: 'mfall', h: 'Districts falling', v: r => r.micro && r.micro.falling, f: r => U.num(r.micro && r.micro.falling, 0, '%') }, { k: 'mdisp', h: 'Dispersion', v: r => r.micro && r.micro.disp, f: r => U.num(r.micro && r.micro.disp, 1), t: 'Spread of district relative value inside the city, points' },
       { k: 'through', h: 'Through', f: V.through }],
     lev: [{ k: 'yield', h: 'Gross yield', f: r => U.num(r.yield, 2, '%') }, { k: 'yield_spread', h: 'Yield − 10y', f: r => U.sgn(r.yield_spread, 2), t: tip.ys }, { k: 'pti_years', h: 'Price/income', f: r => U.num(r.pti_years, 1, '×') },
-      { k: 'rent_share', h: 'Rent/income', f: r => U.num(r.rent_share, 0, '%'), t: 'Annual rent as a share of household income' }, { k: 'inc_basis', h: 'Income basis', l: 1, f: r => U.txt(r.inc_basis), cls: 'wrap dim' },
+      { k: 'rent_share', h: 'Rent/income', f: r => U.num(r.rent_share, 0, '%'), t: 'Annual rent as a share of household income' },
+      { k: 'wage_m2', h: 'm² per year of income', f: r => U.num(r.wage_m2, 1), t: 'Square metres of housing that one year of the stated income buys at the published price per m². Shown where only a price per m² is published, so no dwelling size is assumed.' }, { k: 'inc_basis', h: 'Income basis', l: 1, f: r => U.txt(r.inc_basis), cls: 'wrap dim' },
       { k: 'levels_year', h: 'Year', f: r => U.txt(r.levels_year) }, { k: 'gap', h: 'Implied gap', f: r => U.gapBar(r.gap, null, null, { w: 72 }) }],
   };
 
@@ -79,7 +80,7 @@
         ${U.select('ci-flag', 'Flag', V.opt('Any', flags), s.flag)}${U.search('ci-q', 'Filter cities', s.q)}<span class="count" id="ci-n"></span></div><div id="ci-t"></div></section>
       <p class="note">Implied gap = the country's fair-value gap plus how far the city's premium to its country sits from that premium's own long-run mean. It needs a country on the ratio basis and at least ${v.params.city_min_q} quarters of city history. Yields and price-to-income compare cities inside one country; definitions differ across countries (see <a href="#/methodology">methodology</a>).</p>`;
     const rows = () => v.cities.filter(c => (!s.region || c.region === s.region) && (!s.country || c.country === s.country) && (!s.tier || (s.tier === 'B' ? c.tier === 'B' : c.tier !== 'B')) &&
-      (!s.quad || c.quadrant === s.quad) && (!s.flag || (c.flags || []).includes(s.flag)) && V.match(c, s.q) && (s.set !== 'lev' || ok(c.yield) || ok(c.pti_years)));
+      (!s.quad || c.quadrant === s.quad) && (!s.flag || (c.flags || []).includes(s.flag)) && V.match(c, s.q) && (s.set !== 'lev' || ok(c.yield) || ok(c.pti_years) || ok(c.wage_m2)));
     const NAMEK = { k: 'name', h: 'City', l: 1, f: r => V.kl(r, nm) };
     const cols = () => [NAMEK].concat(KC[s.set]);
     const p = REI.pal();
