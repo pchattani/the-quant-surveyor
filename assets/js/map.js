@@ -93,5 +93,57 @@ REI.map = (function () {
       },
     };
   }
-  return { mount };
+
+  /* Point map: one circle per place, coloured on a diverging scale around zero (two hues and a grey middle).
+     pts: [{ lat, lon, v, tip, href, hl }]; opts.kind 'value' (cheap blue to rich amber) or 'change' (red to green);
+     opts.span = value at which the colour saturates; opts.legend = element for the key. */
+  function points(container, pts, opts = {}) {
+    const el = typeof container === 'string' ? document.getElementById(container) : container;
+    if (!el || typeof maplibregl === 'undefined') return null;
+    const map = new maplibregl.Map({ container: el, style: STYLES[REI.theme()], center: [10, 25], zoom: 1, attributionControl: { compact: true }, renderWorldCopies: false });
+    map.on('error', e => { if (e && e.error && /style/i.test(String(e.error.message || '')) && map.getStyle()?.name !== 'fallback') map.setStyle(FALLBACK); });
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+    let cur = { pts, opts };
+    const geo = rows => ({ type: 'FeatureCollection', features: rows.filter(r => r.lat != null && r.lon != null).map(r => ({ type: 'Feature',
+      properties: { v: r.v == null || !isFinite(r.v) ? null : r.v, has: r.v != null && isFinite(r.v), tip: r.tip || '', href: r.href || '', hl: !!r.hl },
+      geometry: { type: 'Point', coordinates: [r.lon, r.lat] } })) });
+    function paint(o) {
+      const P = REI.pal(), ch = o.kind === 'change', span = o.span || 30;
+      const lo = ch ? P.down : P.cheap, hi = ch ? P.up : P.rich;
+      const mid = REI.theme() === 'dark' ? '#737b87' : '#9aa0a8';        // the neutral middle, light enough to see on the basemap
+      return { color: ['case', ['get', 'has'], ['interpolate', ['linear'], ['get', 'v'], -span, lo, 0, mid, span, hi], P.neutral], lo, hi, mid, span, P };
+    }
+    function legend(o, pt) {
+      if (!o.legend) return;
+      const f = x => (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x) + (o.unit == null ? '%' : o.unit);
+      o.legend.innerHTML = `<span>${REI.esc(o.label || '')}</span><span>${f(-pt.span)}</span><i style="width:90px;background:linear-gradient(90deg,${pt.lo},${pt.mid},${pt.hi})"></i><span>${f(pt.span)}</span>` +
+        (cur.pts.some(r => r.v == null) ? `<i style="width:8px;height:8px;border:1.2px solid ${pt.P.neutral};border-radius:50%;background:none"></i><span>no reading</span>` : '');
+    }
+    function fit(rows) {
+      const g = rows.filter(r => r.lat != null && r.lon != null);
+      if (!g.length) return;
+      if (g.length === 1) { map.jumpTo({ center: [g[0].lon, g[0].lat], zoom: cur.opts.zoom || 8 }); return; }
+      const xs = g.map(r => r.lon), ys = g.map(r => r.lat);
+      map.fitBounds([[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]], { padding: 36, duration: 0, maxZoom: cur.opts.maxZoom || 10 });
+    }
+    function draw() {
+      const pt = paint(cur.opts), gj = geo(cur.pts), big = cur.opts.radius || 1;
+      if (map.getSource('pp')) { map.getSource('pp').setData(gj); map.setPaintProperty('pp', 'circle-color', pt.color); }
+      else {
+        map.addSource('pp', { type: 'geojson', data: gj });
+        map.addLayer({ id: 'pp', type: 'circle', source: 'pp', paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 1, ['case', ['get', 'hl'], 6 * big, 3.2 * big], 5, ['case', ['get', 'hl'], 9 * big, 5.5 * big], 10, ['case', ['get', 'hl'], 12 * big, 8 * big]],
+          'circle-color': pt.color, 'circle-opacity': ['case', ['get', 'has'], 0.92, 0],
+          'circle-stroke-color': ['case', ['get', 'hl'], pt.P.ink || '#fff', ['get', 'has'], pt.P.panel, pt.P.neutral], 'circle-stroke-width': ['case', ['get', 'hl'], 2, ['get', 'has'], 0.8, 1.1] } });
+        const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 8 });
+        map.on('mousemove', 'pp', e => { const f = e.features[0]; popup.setLngLat(f.geometry.coordinates).setHTML(f.properties.tip).addTo(map); map.getCanvas().style.cursor = f.properties.href ? 'pointer' : ''; });
+        map.on('mouseleave', 'pp', () => { popup.remove(); map.getCanvas().style.cursor = ''; });
+        map.on('click', 'pp', e => { const h = e.features[0].properties.href; if (h) location.hash = h; });
+      }
+      legend(cur.opts, pt);
+    }
+    map.on('load', () => { draw(); fit(cur.pts); });
+    return { map, set(rows, o, refit) { cur = { pts: rows, opts: Object.assign({}, cur.opts, o || {}) }; if (map.loaded()) { draw(); if (refit) fit(rows); } } };
+  }
+  return { mount, points };
 })();

@@ -11,7 +11,8 @@
     const v = await REI.val(), r = v.countries.find(c => c.iso2 === iso);
     if (!r) throw new Error(`No country ${iso} in the valuation table`);
     const d = await REI.vcountry(iso), nm = V.names(v), ratio = r.basis === 'ratios';
-    const cities = v.cities.filter(c => c.country === iso);
+    const cities = v.cities.filter(c => c.country === iso), mapped = cities.filter(c => ok(c.lat) && !c.stale);
+    const m0 = mapped.some(c => ok(c.gap)) ? 'gap' : 'real';            // no valued city yet: colour by price change
     const rn = d.rate_note || {};
     const lendTxt = r.lend_basis === 'mortgage' ? 'published mortgage rate' : r.lend_basis ? `10-year yield + ${fmt.fx(r.spread || rn.spread, 1)} points` : 'no rate series';
     app.innerHTML = U.head(esc(r.name), `${esc(r.region || '')} · ${ratio ? `fair value from ${r.n} measures` : 'no income or rent ratios: gap to own real price trend'} · prices through ${fmt.qtr(r.price_through || r.through)}`,
@@ -31,7 +32,11 @@
       <div class="g g2">${ratio ? U.panel('Real price and trend', 'index, latest = 100', '<div class="chart" id="cs-t"></div>') : ''}${U.panel('Rates', '%', '<div class="chart" id="cs-r"></div>')}${ratio ? '' : U.panel('Inflation', 'CPI, % on a year earlier', '<div class="chart" id="cs-i"></div>')}</div>
       <div class="g g3">${has(d.credit_gap) ? U.panel('Credit-to-GDP gap', 'points (BIS)', '<div class="chart short" id="cs-c"></div>') : ''}${has(d.dsr) ? U.panel('Debt service ratio', `% of income (${esc(r.dsr_kind || 'BIS')})`, '<div class="chart short" id="cs-d"></div>') : ''}
         ${has(d.unemp) ? U.panel('Unemployment', '%', '<div class="chart short" id="cs-u"></div>') : ''}${ratio && has(d.cpi_yoy) ? U.panel('Inflation', 'CPI, % on a year earlier', '<div class="chart short" id="cs-i"></div>') : ''}${has(d.hh_credit) ? U.panel('Household credit', '% of GDP', '<div class="chart short" id="cs-h"></div>') : ''}</div>
+      ${mapped.length > 1 ? `<section class="pnl"><div class="pnl-h"><h2>Cities in ${esc(r.name)}: map</h2><span class="hs">${mapped.length} cities · click a city</span></div>
+        <div class="map-ctl">${U.seg('cs-mm', Object.entries(V.MAPM).map(([k, m]) => [k, m.label]), m0)}<span class="legend" id="cs-lg"></span></div><div class="map" id="cs-map"></div></section>` : ''}
       ${cities.length ? U.panel(`Cities in ${r.name}`, `${cities.length} · implied gap = country gap plus the city's premium against its own mean`, '<div id="cs-k"></div>', { flush: true }) : ''}
+      ${has(d.pig) ? U.panel(`Price to ${esc((d.pig_basis || 'GDP per head').toLowerCase())}`, '% from its own mean · descriptive, not part of the gap', '<div class="chart short" id="cs-pg"></div>') +
+        `<p class="note caveat"><b>Read with care.</b> No price-to-income ratio is published for ${esc(r.name)}. This is the national price index over ${esc((d.pig_basis || 'GDP per head').toLowerCase())} (${d.pig_basis === 'GDP per head' ? 'World Bank, annual' : 'national statistics, annual'}), against its own mean. Where incomes have grown much faster than the price index it simply trends down, so it is shown for reference and is not used in the gap, the flags or the rankings.${r.deflated ? ` Real prices here are the nominal series deflated by ${esc(r.deflated)}.` : ''}${r.national_source ? ` National series: ${esc(r.national_source)}.` : ''}</p>` : ''}
       <p class="note">Lending rate: ${esc(lendTxt)}${rn.from ? ` (series from ${esc(fmt.qtr(rn.from))})` : ''}. ${ratio ? 'Measures: price to income, price to rent, mortgage payment to income and to rent, each against its own long-run mean.' : ''} The point-in-time line recomputes the gap each quarter with only the data available then; the gap to that line is how much hindsight changes the picture. <a href="#/methodology">Methodology</a>.</p>`;
     const p = REI.pal(), q = d.q;
     if (ratio) {
@@ -47,7 +52,13 @@
     if (has(d.dsr)) C.lines('cs-d', [{ x: q, y: d.dsr }], { suffix: '%', height: 200 });
     if (has(d.unemp)) C.lines('cs-u', [{ x: q, y: d.unemp }], { suffix: '%', height: 200 });
     if (has(d.cpi_yoy)) C.lines('cs-i', [{ x: q, y: d.cpi_yoy }], { suffix: '%', zero: true, height: ratio ? 200 : 280 });
+    if (has(d.pig)) C.lines('cs-pg', [{ x: q, y: d.pig }], { suffix: '%', zero: true, height: 200 });
     if (has(d.hh_credit)) C.lines('cs-h', [{ x: q, y: d.hh_credit }], { suffix: '%', height: 200 });
+    if (mapped.length > 1) {
+      const mo = k => { const m = V.MAPM[k]; return { kind: m.kind, span: m.span, unit: m.unit, label: m.label, legend: U.$('cs-lg'), maxZoom: 9 }; };
+      const mp = REI.map.points('cs-map', V.cityPts(mapped, m0, null), mo(m0));
+      U.onSeg('cs-mm', x => { if (mp) mp.set(V.cityPts(mapped, x, null), mo(x), false); });
+    }
     if (cities.length) U.table('cs-k', { id: 'cs-k', sort: 'gap', dir: -1, limit: 40, rows: cities, rowCls: c => (c.stale ? 'stale' : ''), cols: [
       { k: 'name', h: 'City', l: 1, f: c => `<a href="#/city/${c.key}">${esc(c.name)}</a>${c.tier !== 'B' ? V.tag('sold records') : ''}${c.stale ? V.tag('stale') : ''}` },
       { k: 'gap', h: 'Implied gap', f: c => U.gapBar(c.gap) }, { k: 'prem', h: 'Premium', f: c => U.sgn(c.prem, 0, '%') }, { k: 'prem_z', h: 'Premium z', f: c => U.zBar(c.prem_z) },
@@ -83,7 +94,9 @@
       ]) +
       (vk && has(vk.prem) ? `<div class="g g2">${U.panel('Premium to country', `% from its own mean · lines at ±1 and ±2 standard deviations (${fmt.fx(vk.prem_sd, 1)} pts)`, '<div class="chart" id="cy-p"></div>')}
         ${U.panel('Real price and trend', 'index, latest = 100', '<div class="chart" id="cy-t"></div>')}</div>` : '') +
-      `<div id="cy-x"></div><div id="cy-d"></div>` +
+      `<div id="cy-x"></div><div id="cy-d"></div><div id="cy-m"></div>` +
+      (R.long_used ? `<p class="note">The current series is too short to value on its own, so the premium, trend and changes above use the city's longer published history: ${esc(R.long_used)}.</p>` : '') +
+      (R.annual ? `<p class="note caveat"><b>Annual source.</b> This city is published once or twice a year. The quarters between published points lie on a straight line, so one-year changes are real but volatility, beta and the premium z-score are smoother than a quarterly series would give.</p>` : '') +
       (m.caveat ? `<p class="note caveat"><b>Read with care:</b> ${esc(m.caveat)}</p>` : '') + (s && s.notes ? `<p class="note">${esc(s.notes)}</p>` : '');
     const p = REI.pal();
     if (vk && has(vk.prem)) {
@@ -93,8 +106,39 @@
     }
     if (s) (sold ? soldBlocks : indexBlocks)(U.$('cy-x'), key, s);
     districts(U.$('cy-d'), key, vk, s, cur, v.params.micro_min_weight);
+    cityMaps(U.$('cy-m'), key, R, v, vk, nm, sold);
     setAttr(s ? s.attribution : '');
   });
+
+  /* Maps for a city page. Sold-record cities already draw hexagons from their own sales. Index-only cities get their
+     districts as points where a gazetteer places them (US ZIP codes), and every city gets a map of where it sits among
+     the other covered cities of its country, on the same colour scale as the Cities page. */
+  async function cityMaps(host, key, R, v, vk, nm, sold) {
+    const geo = sold || !R.pts ? null : await REI.areaPoints(key);
+    const D = ((vk && vk.districts) || []).filter(d => geo && geo.pts[d.code]);
+    const peers = v.cities.filter(c => c.country === R.country && ok(c.lat) && !c.stale);
+    const here = ok(R.lat) && !peers.some(c => c.key === key) ? peers.concat([R]) : peers;
+    const p0 = here.some(c => ok(c.gap)) ? 'gap' : 'real';
+    const DM = { z: { label: 'Relative value z', kind: 'value', span: 2.5, unit: '', get: d => d.z, txt: d => `relative value z ${fmt.sg(d.z, 2)}` },
+      mom: { label: '1-year change', kind: 'change', span: 10, get: d => d.mom, txt: d => `1 year ${fmt.pct(d.mom)}` },
+      rel: { label: '1 year against the city', kind: 'change', span: 6, unit: ' pts', get: d => d.rel_mom, txt: d => `${fmt.sg(d.rel_mom, 1)} pts against the city` } };
+    host.innerHTML = (D.length ? `<section class="pnl"><div class="pnl-h"><h2>District map</h2><span class="hs">${D.length} districts · ${esc(geo.basis)} · click a district</span></div>
+        <div class="map-ctl">${U.seg('cm-dm', Object.entries(DM).map(([k, m]) => [k, m.label]), 'z')}<span class="legend" id="cm-dl"></span></div><div class="map" id="cm-d"></div></section>` : '') +
+      (here.length ? `<section class="pnl"><div class="pnl-h"><h2>${here.length > 1 ? `${esc(R.name)} and the other covered cities: ${esc(nm[R.country] || R.country)}` : 'Location'}</h2><span class="hs">${here.length > 1 ? `${here.length} covered cities · this city ringed · click a city` : 'the only covered city in this country'}</span></div>
+        <div class="map-ctl">${U.seg('cm-pm', Object.entries(V.MAPM).map(([k, m]) => [k, m.label]), p0)}<span class="legend" id="cm-pl"></span></div><div class="map" id="cm-p"></div></section>` : '');
+    if (D.length) {
+      const dp = k => D.map(d => ({ lat: geo.pts[d.code][0], lon: geo.pts[d.code][1], v: ok(DM[k].get(d)) && !d.noisy ? DM[k].get(d) : null, href: `#/area/${key}/${encodeURIComponent(d.code)}`,
+        tip: `<b>${esc(d.name || d.code)}</b><br>${ok(DM[k].get(d)) ? esc(DM[k].txt(d)) : 'no reading'}${d.noisy ? ' · thin' : ''}` }));
+      const dopt = k => ({ kind: DM[k].kind, span: DM[k].span, unit: DM[k].unit, label: DM[k].label, legend: U.$('cm-dl'), maxZoom: 12, radius: 0.9 });
+      const dm = REI.map.points('cm-d', dp('z'), dopt('z'));
+      U.onSeg('cm-dm', x => { if (dm) dm.set(dp(x), dopt(x), false); });
+    }
+    if (here.length) {
+      const po = k => { const m = V.MAPM[k]; return { kind: m.kind, span: m.span, unit: m.unit, label: m.label, legend: U.$('cm-pl'), maxZoom: 8, zoom: 7 }; };
+      const pm = REI.map.points('cm-p', V.cityPts(here, p0, null, key), po(p0));
+      U.onSeg('cm-pm', x => { if (pm) pm.set(V.cityPts(here, x, null, key), po(x), false); });
+    }
+  }
 
   /* District valuation: scatter of relative value against relative momentum, and the table, filtered by level. */
   function districts(host, key, vk, s, cur, minw) {

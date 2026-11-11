@@ -14,7 +14,7 @@
     val: [{ k: 'gap', h: 'Gap', f: r => U.gapBar(r.gap, r.lo, r.hi), t: tip.gap }, { k: 'pct', h: 'Pctile', f: r => U.num(r.pct, 0), t: tip.pct }, { k: 'gap_1y', h: 'Δ 1y', f: r => U.sgn(r.gap_1y, 1), t: 'Change in the gap over a year, points' },
       { k: 'pir', h: 'P/Income', f: r => U.sgn(r.pir, 0, '%'), t: tip.pir }, { k: 'prr', h: 'P/Rent', f: r => U.sgn(r.prr, 0, '%'), t: tip.prr },
       { k: 'pti', h: 'Pay/Income', f: r => U.sgn(r.pti, 0, '%'), t: tip.pti }, { k: 'ptr', h: 'Pay/Rent', f: r => U.sgn(r.ptr, 0, '%'), t: tip.ptr },
-      { k: 'trend_gap', h: 'Trend gap', f: r => U.sgn(r.trend_gap, 0, '%'), t: tip.trend }, { k: 'real_1y', h: 'Real 1y', f: r => U.chg(r.real_1y) },
+      { k: 'trend_gap', h: 'Trend gap', f: r => U.sgn(r.trend_gap, 0, '%'), t: tip.trend }, { k: 'pig', h: 'P/GDP per head', f: r => U.sgn(r.pig, 0, '%'), t: 'Countries without ratio data only: national price index over GDP per head (or household income), % from its own mean. Descriptive: it trends in fast-growing economies and is not part of the gap.' }, { k: 'real_1y', h: 'Real 1y', f: r => U.chg(r.real_1y) },
       { k: 'quadrant', h: 'Regime', l: 1, f: r => V.regime(r.quadrant) }, { k: 'flags', h: 'Flags', l: 1, ns: 1, f: r => U.chips(r.flags) }, { k: 'through', h: 'Through', f: V.through }],
     px: [{ k: 'real_1y', h: 'Real 1y', f: r => U.chg(r.real_1y) }, { k: 'real_3y', h: 'Real 3y p.a.', f: r => U.chg(r.real_3y) }, { k: 'real_5y', h: 'Real 5y p.a.', f: r => U.chg(r.real_5y) }, { k: 'real_10y', h: 'Real 10y p.a.', f: r => U.chg(r.real_10y) },
       { k: 'nominal_1y', h: 'Nominal 1y', f: r => U.chg(r.nominal_1y) }, { k: 'usd_1y', h: 'USD 1y', f: r => U.chg(r.usd_1y) }, { k: 'fx_1y', h: 'FX 1y', f: r => U.chg(r.fx_1y), t: 'Currency against the US dollar over a year' },
@@ -32,11 +32,11 @@
   REI.route('/countries', async app => {
     const v = await REI.val(), s = U.st('countries', { set: 'val', region: '', q: '' });
     app.innerHTML = U.head('Countries', 'Fair-value gaps, price history and the rate and credit backdrop, one row per country. Click a column to sort and a country for its tear-sheet.',
-      `${v.kpis.countries_ratio} on valuation ratios · ${v.kpis.countries - v.kpis.countries_ratio} on trend only`) +
+      `${v.kpis.countries_ratio} on valuation ratios · ${v.kpis.countries - v.kpis.countries_ratio} on trend only or stale`) +
       `<section class="pnl"><div class="ctl">${U.seg('co-set', [['val', 'Valuation'], ['px', 'Prices'], ['mac', 'Rates & credit']], s.set)}
         ${U.select('co-reg', 'Region', V.opt('All regions', V.regions(v.countries)), s.region)}${U.search('co-q', 'Filter countries', s.q)}<span class="count" id="co-n"></span></div>
         <div id="co-t"></div></section>
-      <p class="note">Gap = how far prices sit above (+) or below (−) the level that income, rents and mortgage cost have supported in that country's own history. Countries tagged <i>trend</i> lack ratio data and show the gap to their own real price trend instead. Rows tagged <i>stale</i> stopped publishing more than ${v.params.stale_q} quarters ago.</p>`;
+      <p class="note">Gap = how far prices sit above (+) or below (−) the level that income, rents and mortgage cost have supported in that country's own history. Countries tagged <i>trend</i> lack ratio data and show the gap to their own real price trend instead; for them the column <i>P/GDP per head</i> gives the national price index over GDP per head against its own mean, a descriptive figure that trends in fast-growing economies and is not part of any gap. Rows tagged <i>stale</i> stopped publishing more than ${v.params.stale_q} quarters ago.</p>`;
     const rows = () => v.countries.filter(c => (!s.region || c.region === s.region) && V.match(c, s.q));
     const cols = () => [NAMEC].concat(CC[s.set]);
     const t = U.table('co-t', { id: 'countries', cols: cols(), rows: rows(), sort: 'gap', dir: -1, rowCls: r => (r.stale ? 'stale' : '') });
@@ -64,11 +64,13 @@
   };
 
   REI.route('/cities', async app => {
-    const v = await REI.val(), nm = V.names(v), s = U.st('cities', { set: 'val', region: '', country: '', tier: '', quad: '', flag: '', q: '' });
+    const v = await REI.val(), nm = V.names(v), s = U.st('cities', { set: 'val', region: '', country: '', tier: '', quad: '', flag: '', q: '', mm: 'gap' });
     const ctry = [...new Set(v.cities.map(c => c.country))].map(c => [c, nm[c] || c]).sort((a, b) => a[1].localeCompare(b[1]));
     const flags = [...new Set(v.cities.flatMap(c => c.flags || []))].sort();
     app.innerHTML = U.head('Cities', 'Each city against its own country: the premium it trades at, how unusual that premium is, and the gap this implies. Yields and price-to-income where levels are published.',
       `${v.kpis.cities} cities · ${v.kpis.cities_valued} with a valuation · ${v.cities.filter(c => ok(c.yield)).length} with yields`) +
+      `<section class="pnl"><div class="pnl-h"><h2>Where the cities are</h2><span class="hs">${v.kpis.cities_mapped || 0} cities placed · the filters below apply · click a city</span></div>
+        <div class="map-ctl">${U.seg('ci-mm', Object.entries(V.MAPM).map(([k, m]) => [k, m.label]), s.mm)}<span class="legend" id="ci-lg"></span></div><div class="map" id="ci-map"></div></section>` +
       U.panel('Premium against relative momentum', 'premium z-score across, 1-year change less the country\'s (points) up · click a city', '<div class="chart tall" id="ci-sc"></div>') +
       `<section class="pnl"><div class="ctl">${U.seg('ci-set', [['val', 'Valuation'], ['mom', 'Momentum & risk'], ['lev', 'Yields & affordability']], s.set)}
         ${U.select('ci-reg', 'Region', V.opt('All', V.regions(v.cities)), s.region)}${U.select('ci-co', 'Country', V.opt('All', ctry), s.country)}
@@ -84,7 +86,10 @@
     const scat = r => C.scatter('ci-sc', r.filter(c => !c.stale).map(c => ({ x: c.prem_z, y: c.rel_mom, label: c.name, tip: `${c.name} (${nm[c.country] || c.country})`, href: `#/city/${c.key}`, color: c.prem_z >= 0 ? p.rich : p.cheap })),
       { x: 'Premium z-score', y: 'Relative momentum', ys: ' pts', height: 400, xrange: [-4, 4], corners: ['low premium, outperforming', 'high premium, outperforming', 'low premium, lagging', 'high premium, lagging'] });
     const t = U.table('ci-t', { id: 'cities', cols: cols(), rows: rows(), sort: 'gap', dir: -1, limit: 100, rowCls: r => (r.stale ? 'stale' : '') });
-    const redraw = sc => { const r = rows(); t.set(r, cols()); U.$('ci-n').textContent = `${r.length} cities`; if (sc) scat(r); };
+    const mopt = () => { const m = V.MAPM[s.mm]; return { kind: m.kind, span: m.span, unit: m.unit, label: m.label, legend: U.$('ci-lg') }; };
+    const mp = REI.map.points('ci-map', V.cityPts(rows().filter(c => !c.stale), s.mm, nm), mopt());
+    const redraw = sc => { const r = rows(); t.set(r, cols()); U.$('ci-n').textContent = `${r.length} cities`; if (sc) { scat(r); if (mp) mp.set(V.cityPts(r.filter(c => !c.stale), s.mm, nm), mopt(), true); } };
+    U.onSeg('ci-mm', x => { s.mm = x; if (mp) mp.set(V.cityPts(rows().filter(c => !c.stale), s.mm, nm), mopt(), false); });
     U.onSeg('ci-set', x => { s.set = x; redraw(true); });
     [['ci-reg', 'region'], ['ci-co', 'country'], ['ci-tier', 'tier'], ['ci-quad', 'quad'], ['ci-flag', 'flag']].forEach(([id, key]) => U.onChange(id, x => { s[key] = x; redraw(true); }));
     U.onInput('ci-q', x => { s.q = x; redraw(false); });

@@ -1,6 +1,6 @@
 /* Core: state, hash routing, loaders (JSON and gzip shards), theme and palette, formatting, search. */
 window.REI = (function () {
-  const state = { meta: null, cities: {}, areas: {}, sales: {}, h3: {}, misc: {}, view: {} };
+  const state = { meta: null, cities: {}, areas: {}, sales: {}, h3: {}, pts: {}, misc: {}, view: {} };
   const DATA = 'data/';
   // sold-record cities are served from regional data repos (their own Pages sites); meta.json carries each base
   function url(path) {
@@ -29,6 +29,7 @@ window.REI = (function () {
   const memo = (bucket, key, fn) => state[bucket][key] || (state[bucket][key] = fn().catch(e => { delete state[bucket][key]; throw e; }));
   const city = k => memo('cities', k, () => getJSON(`cities/${k}/summary.json`));
   const area = (k, code) => memo('areas', `${k}/${code}`, () => getGz(`cities/${k}/areas/${safe(code)}.json.gz`));
+  const areaPoints = k => memo('pts', k, () => getJSON(`cities/${k}/points.json`).catch(() => null));
   const h3layer = (k, res) => memo('h3', `${k}/${res}`, () => getJSON(`cities/${k}/h3/r${res}.json`));
   const salesIndex = k => memo('sales', `${k}/index`, () => getJSON(`cities/${k}/sales/index.json`));
   const salesShard = (k, dist, year) => memo('sales', `${k}/${dist}/${year}`, () => getGz(`cities/${k}/sales/${safe(dist)}/${year}.json.gz`));
@@ -161,6 +162,6 @@ window.REI = (function () {
     dispatch();
   }
 
-  return { state, getJSON, getGz, city, area, h3layer, salesIndex, salesShard, salesDistrict, val, micro, dash, vcountry, vcity,
+  return { state, getJSON, getGz, city, area, h3layer, areaPoints, salesIndex, salesShard, salesDistrict, val, micro, dash, vcountry, vcity,
     fmt, ok, q2d, el, esc, route, redirect, start, safe, theme, pal, rgba, __dispatch: dispatch };
 })();

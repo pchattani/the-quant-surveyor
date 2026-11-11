@@ -11,7 +11,7 @@ REI.vu = (function () {
   }
   const tag = t => `<span class="tag">${esc(t)}</span>`;
   const cl = c => `<a href="#/country/${c.iso2}">${esc(c.name)}</a>${c.basis === 'trend' ? tag('trend') : ''}${c.stale ? tag('stale') : ''}`;
-  const kl = (c, names) => `<a href="#/city/${c.key}">${esc(c.name)}</a>${c.stale ? tag('stale') : ''}<span class="sub">${esc((names && names[c.country]) || c.country)}${c.tier && c.tier !== 'B' ? ' · sold records' : ''}</span>`;
+  const kl = (c, names) => `<a href="#/city/${c.key}">${esc(c.name)}</a>${c.annual ? tag('annual') : ''}${c.stale ? tag('stale') : ''}<span class="sub">${esc((names && names[c.country]) || c.country)}${c.tier && c.tier !== 'B' ? ' · sold records' : ''}</span>`;
   const names = v => Object.fromEntries(v.countries.map(c => [c.iso2, c.name]));
   const REG = { 'rich & rising': 'Rich, rising', 'rich & falling': 'Rich, falling', 'cheap & rising': 'Cheap, rising', 'cheap & falling': 'Cheap, falling' };
   const regime = q => (q ? esc(REG[q] || q) : '<span class="mute">–</span>');
@@ -21,7 +21,15 @@ REI.vu = (function () {
   const opt = (all, list) => [['', all]].concat(list.map(x => (Array.isArray(x) ? x : [x, x])));
   /* text filter over a row's name and key */
   const match = (r, q) => !q || (r.name + ' ' + (r.key || r.iso2 || '') + ' ' + (r.country || '')).toLowerCase().includes(q.toLowerCase());
-  return { trim, tag, cl, kl, names, regime, through, gapCls, regions, opt, match };
+  /* City map metrics: what colours the points, on which scale. */
+  const MAPM = {
+    gap: { label: 'Implied gap', kind: 'value', span: 30, get: c => c.gap, txt: c => `implied gap ${fmt.sg(c.gap, 1)}%` },
+    real: { label: 'Real 1-year change', kind: 'change', span: 10, get: c => (ok(c.real_1y) ? c.real_1y : c.mom), txt: c => `1 year ${fmt.pct(ok(c.real_1y) ? c.real_1y : c.mom)}${ok(c.real_1y) ? ' real' : ' nominal'}` },
+    z: { label: 'Premium z-score', kind: 'value', span: 2.5, unit: '', get: c => c.prem_z, txt: c => `premium z ${fmt.sg(c.prem_z, 2)}` },
+  };
+  const cityPts = (rows, m, nm, hl) => rows.filter(c => ok(c.lat) && ok(c.lon)).map(c => ({ lat: c.lat, lon: c.lon, v: ok(MAPM[m].get(c)) ? MAPM[m].get(c) : null, hl: c.key === hl,
+    href: `#/city/${c.key}`, tip: `<b>${esc(c.name)}</b>${nm ? ' · ' + esc(nm[c.country] || c.country) : ''}<br>${ok(MAPM[m].get(c)) ? esc(MAPM[m].txt(c)) : 'no reading'}` }));
+  return { trim, tag, cl, kl, names, regime, through, gapCls, regions, opt, match, MAPM, cityPts };
 })();
 
 (function () {
@@ -43,7 +51,7 @@ REI.vu = (function () {
 
     app.innerHTML = U.head('Global residential valuation',
       `Where housing is rich or cheap against income, rents and financing cost, and which way prices are moving. ${k.countries} countries, ${k.cities} cities, ${k.districts.toLocaleString('en-GB')} districts.`,
-      `${U.badge('World series through ' + fmt.qtr(T.q))}<br>${k.countries_ratio} countries on valuation ratios, ${k.countries - k.countries_ratio} on trend only`) +
+      `${U.badge('World series through ' + fmt.qtr(T.q))}<br>${k.countries_ratio} countries on valuation ratios, ${k.countries - k.countries_ratio} on trend only or stale`) +
       U.kpis([
         { k: 'Median country gap', v: U.sgn(w.gap_median[i], 1, '%'), cls: V.gapCls(w.gap_median[i]), sp: U.spark(tail(w.gap_median)),
           s: `Middle half ${fmt.pct(w.gap_q25[i], 0)} to ${fmt.pct(w.gap_q75[i], 0)} · ${w.n[i]} countries`, t: 'Median fair-value gap across countries on the ratio basis. Positive = prices above what income, rents and mortgage cost have supported in that country\'s own history.' },
@@ -53,7 +61,7 @@ REI.vu = (function () {
         { k: 'Cities falling', v: U.num(k.city_share_falling, 0, '%'), s: `of ${k.cities} cities, real 1-year change` },
         { k: 'Median policy rate', v: U.num(lastOf(w.policy_median), 2, '%'), sp: U.spark(tail(w.policy_median)), s: `median real 10-year yield ${fmt.fx(lastOf(w.real_long_median), 2)}%` },
       ]) +
-      `<div class="g g32">${U.panel('Fair-value gap by country', 'blue = cheap, amber = rich, grey = trend basis only · click a country', '<div class="chart tall" id="ov-map"></div>', { flush: true })}
+      `<div class="g g32">${U.panel('Fair-value gap by country', 'blue = cheap, amber = rich, grey = trend basis only or stale · click a country', '<div class="chart tall" id="ov-map"></div>', { flush: true })}
         ${U.panel('Value against momentum', 'gap (%) across, real 1-year price change (%) up', '<div class="chart tall" id="ov-sc"></div>')}</div>
       <div class="g g2">${U.panel('The gap through time', 'median country and the middle half of countries', '<div class="chart" id="ov-gap"></div>')}
         ${U.panel('Breadth', 'share of countries, %', '<div class="chart" id="ov-br"></div>')}</div>
