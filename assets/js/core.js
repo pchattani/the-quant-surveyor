@@ -49,7 +49,7 @@ window.REI = (function () {
   const vcountry = iso => memo('misc', `vc/${iso}`, () => getJSON(`valuation/countries/${iso}.json`));
   const vcity = k => memo('misc', `vk/${k}`, () => getJSON(`valuation/cities/${k}.json`));
 
-  const safe = s => String(s).replace(/ /g, '_').replace(/\//g, '-');
+  const safe = s => String(s).replace(/ /g, '_').replace(/[\/\\:*?"<>|]/g, '-');       // as rei.build.shards.safe_name
   const ok = v => v != null && !isNaN(v);
   const fmt = {
     money(v, cur) { if (!ok(v)) return '–'; const sym = { GBP: '£', USD: '$', EUR: '€', AUD: 'A$', SGD: 'S$', AED: 'AED ' }[cur] || ''; return sym + Math.round(v).toLocaleString('en-GB'); },
