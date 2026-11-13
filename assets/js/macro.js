@@ -1,4 +1,4 @@
-/* Cycle & risk, Returns and Evidence. */
+/* Cycle, Returns and Evidence. */
 (function () {
   const { fmt, esc, ok } = REI, U = REI.ui, C = REI.charts, V = REI.vu;
   const kv = x => (x && ok(x.value) ? x.value : null);
@@ -10,7 +10,7 @@
     const cnt = f => live.filter(c => (c.flags || []).includes(f)).length;
     const dc = Object.fromEntries((d.countries || []).map(c => [c.iso2, c]));
     const g = d.global || {};
-    app.innerHTML = U.head('Cycle & risk', 'The financing and credit backdrop, how broad price falls are, and which countries carry stress flags.', U.badge('World series through ' + fmt.qtr(T.q))) +
+    app.innerHTML = U.head('Cycle', 'The financing and credit backdrop, how broad price falls are, and which countries carry stress flags. Volatility, correlation and stress tests are on the <a href="#/risk">Risk</a> page.', U.badge('World series through ' + fmt.qtr(T.q))) +
       U.kpis([
         { k: 'Rate shock', v: cnt('rate shock'), s: `lending rate up more than ${F.rate_shock} points in 3 years` },
         { k: 'Credit boom', v: cnt('credit boom'), s: `credit-to-GDP gap above ${F.credit_gap} points` },
@@ -77,7 +77,7 @@
 
   // ------------------------------------------------------------------------------------------ evidence
   REI.route('/evidence', async app => {
-    const [v, m] = await Promise.all([REI.val(), REI.micro()]), E = v.evidence, ec = E.country, ek = E.city, o = m.evidence.overall;
+    const [v, m, an] = await Promise.all([REI.val(), REI.micro(), REI.an().catch(() => null)]), E = v.evidence, ec = E.country, ek = E.city, o = m.evidence.overall;
     const H = ec.horizons, hy = h => `${h / 4}y`;
     const fvE = (ec.signals.find(s => s.key === 'head') || ec.signals.find(s => s.key === 'fv') || {}).h, gE = (ec.signals.find(s => s.key === 'gap') || { h: {} }).h;
     const icRow = s => `<tr><td class="l">${esc(s.label)}</td>${H.map(h => { const x = s.h[String(h)]; return x ? `<td>${fmt.sg(x.ic, 3)}</td><td class="dim">${fmt.fx(x.t, 1)}</td><td class="dim">${ok(x.hit) ? fmt.fx(x.hit, 0) + '%' : '–'}</td>` : '<td>–</td><td>–</td><td>–</td>'; }).join('')}</tr>`;
@@ -91,7 +91,9 @@
       ${U.panel('Cities against their country', `${ek.cities} cities · at least ${ek.min_xs} per quarter · real change relative to the country`, icTable(ek), { flush: true })}
       ${U.panel('Districts against their city', 'average rank correlation across cities', `<div class="ev">${[['Momentum, 1 year', o.mom_4], ['Momentum, 3 years', o.mom_12], ['Relative value, 1 year', o.rv_4], ['Relative value, 3 years', o.rv_12]].map(([k, x]) =>
         `<div><div class="k">${k}</div><div class="v">IC ${fmt.sg(x.mean_ic, 3)}</div><div class="s">positive in ${fmt.fx(x.positive, 0)}% of ${x.cities} cities</div></div>`).join('')}</div>`)}
+      ${an && REI.risk ? REI.risk.evidence(an) : ''}
       <p class="note caveat">Reading: momentum is the one signal with a clear record at every level, strongest over one year. ${fvE && fvE['20'] ? `The <a href="#/model">model's</a> fair-value gap, which estimates how much income and borrowing cost matter instead of averaging four fixed ratios, has ranked later changes better than the four-ratio composite at every horizon (${fmt.sg(fvE['20'].ic, 2)} against ${fmt.sg(gE['20'].ic, 2)} over five years), but its t-statistics stay near 2.` : 'The fair-value gap has helped only over five years and only weakly (t below 2).'} District relative value has no measured edge. History starts in ${String(ec.start).slice(0, 4)} and covers few independent five-year periods, so long-horizon numbers are uncertain.</p>`;
+    if (an && REI.risk) REI.risk.evidenceCharts(an);
     const p = REI.pal(), sg = k => ec.signals.find(s => s.key === k);
     const ser = [['head', 'Fair-value gap (model)', p.cat[0]], ['gap', 'Four-ratio composite', p.cat[2]], ['mom', 'Momentum', p.cat[1]]].map(([k, n, c]) => { const s = sg(k); return s && s.series ? { x: s.series.q, y: s.series.ic, name: n, color: c, fmt: '.2f' } : null; }).filter(Boolean);
     if (ser.length) C.lines('ev-s', ser, { zero: true, y: 'Rank correlation', fmt: '.2f' });

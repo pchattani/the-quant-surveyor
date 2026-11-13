@@ -48,6 +48,7 @@ window.REI = (function () {
   const dash = () => memo('misc', 'dash', () => getJSON('dashboard.json'));
   const vcountry = iso => memo('misc', `vc/${iso}`, () => getJSON(`valuation/countries/${iso}.json`));
   const vcity = k => memo('misc', `vk/${k}`, () => getJSON(`valuation/cities/${k}.json`));
+  const an = () => memo('misc', 'an', () => getJSON('analytics.json'));        // risk, stress, nowcasts, paper portfolios
 
   const safe = s => String(s).replace(/ /g, '_').replace(/[\/\\:*?"<>|]/g, '-');       // as rei.build.shards.safe_name
   const ok = v => v != null && !isNaN(v);
@@ -163,6 +164,6 @@ window.REI = (function () {
     dispatch();
   }
 
-  return { state, getJSON, getGz, city, area, h3layer, areaPoints, salesIndex, salesShard, salesDistrict, val, micro, dash, vcountry, vcity,
+  return { state, getJSON, getGz, city, area, h3layer, areaPoints, salesIndex, salesShard, salesDistrict, val, micro, dash, vcountry, vcity, an,
     fmt, ok, q2d, el, esc, route, redirect, start, safe, theme, pal, rgba, __dispatch: dispatch };
 })();

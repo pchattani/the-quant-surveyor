@@ -151,11 +151,21 @@ REI.charts = (function () {
   const mix = (a, b, t) => { const A = parseInt(a.slice(1), 16), B = parseInt(b.slice(1), 16);
     const c = k => Math.round(((A >> k) & 255) * (1 - t) + ((B >> k) & 255) * t);
     return '#' + ((1 << 24) | (c(16) << 16) | (c(8) << 8) | c(0)).toString(16).slice(1); };
+  /* Correlation heatmap: names on both axes, -1 cobalt, 0 the panel colour, +1 amber (a diverging scale with a neutral
+     midpoint); one cell per pair, hover gives the pair and the value. */
+  function heat(div, names, z, opts = {}) {
+    const p = REI.pal(), tf = { color: p.mute, family: MONO, size: 9.5 };
+    const tr = { type: 'heatmap', x: names, y: names, z, zmin: -1, zmax: 1, xgap: 1, ygap: 1,
+      colorscale: [[0, p.cheap], [0.5, p.panel2], [1, p.rich]], hovertemplate: '%{y} and %{x}: %{z:.2f}<extra></extra>',
+      colorbar: { thickness: 10, len: 0.6, outlinewidth: 0, tickfont: tf, tickvals: [-1, -0.5, 0, 0.5, 1] } };
+    return plot(div, [tr], { height: opts.height || 600, hovermode: 'closest', margin: { l: 36, r: 8, t: 8, b: 36 },
+      xaxis: { tickangle: -90, tickfont: tf, showgrid: false, ticks: '' }, yaxis: { autorange: 'reversed', tickfont: tf, showgrid: false, ticks: '' } });
+  }
   function ramp(n) {
     const p = REI.pal(), dark = REI.theme() === 'dark';
     const a = dark ? mix(p.mid, p.cheap, 0.15) : mix('#ffffff', p.cheap, 0.18), b = p.cheap, c = dark ? mix(p.cheap, '#ffffff', 0.55) : mix(p.cheap, '#000000', 0.5);
     return Array.from({ length: n }, (_, i) => { const t = n === 1 ? 1 : i / (n - 1); return t < 0.5 ? mix(a, b, t * 2) : mix(b, c, (t - 0.5) * 2); });
   }
 
-  return { plot, lines, scatter, choropleth, bars, index, stacked, volume, hist, ramp, mix };
+  return { heat, plot, lines, scatter, choropleth, bars, index, stacked, volume, hist, ramp, mix };
 })();

@@ -22,6 +22,24 @@
       ok(r.uw_q) ? dd('Real price peak', r.uw_q === 0 ? 'now' : esc(fmt.qtr(r.peak)), r.uw_q ? `${fmt.fx(r.uw_q / 4, 1)} years ago · ${fmt.pct(r.dd, 1)} from it` : '') : '',
     ].join('');
   }
+  /* Risk on a tear sheet: smoothing-corrected volatility, the worst fall and its recovery, the tail of one-year changes,
+     the model's stress tests (countries) and the three historical replays. Read from the row (rei.build.analytics). */
+  function riskBlock(r) {
+    const k = r.risk;
+    if (!k || k.vol_u == null) return '';
+    const q = x => (x ? fmt.qtr(x) : '–'), s = r.stress || {};
+    const items = [
+      { k: 'Volatility', v: U.num(k.vol_u, 1, '%'), s: `de-smoothed · ${fmt.fx(k.vol_raw, 1)}% as published · φ ${fmt.fx(k.phi, 2)}` },
+      { k: 'Worst real fall', v: U.chg(k.max_dd, 0), s: `${q(k.dd_peak)} to ${q(k.dd_trough)} · ${k.dd_recovered ? `recovered ${q(k.dd_recovered)}` : 'not yet recovered'}` },
+      { k: '1-year shortfall, 5%', v: U.chg(k.es_1y, 1), s: `worst year ${fmt.pct(k.worst_1y, 1)} to ${q(k.worst_1y_end)}` },
+      { k: '2007-12 replay', v: U.chg(k.w_gfc, 1), s: `1990-95 ${fmt.pct(k.w_e90, 1)} · 2022-24 ${fmt.pct(k.w_r22, 1)}` },
+    ];
+    if (ok(s.rate2)) items.push({ k: 'Rate +2 points', v: U.chg(s.rate2, 1), s: `fair value · +1 point ${fmt.pct(s.rate1, 1)} · income −5%: ${fmt.pct(s.inc5, 1)}` });
+    if (r.nowcast && r.nowcast.k) items.push({ k: `Nowcast to ${q(r.nowcast.to)}`, v: U.chg(r.nowcast.chg, 1), s: `${r.nowcast.k} quarters past the data · ${fmt.sg(r.nowcast.lo, 1)} to ${fmt.sg(r.nowcast.hi, 1)} · model` });
+    if (ok(r.exp_tr_1y)) items.push({ k: 'Expected total return, 1y', v: U.chg(r.exp_tr_1y, 1), s: `real price ${fmt.pct(r.exp_1y, 1)} + gross yield ${fmt.fx(r.yield, 1)}% · before costs, vacancy, upkeep and tax` });
+    if (r.agree) items.push({ k: 'Valuation methods', v: REI.risk ? REI.risk.agree(r.agree) : '', s: `model, four ratios, trend · spread ${fmt.fx(r.agree.spread, 0)} pts` });
+    return U.panel('Risk', '<a href="#/risk">all markets</a> · real prices, quarterly returns', U.kpis(items));
+  }
   function modelBlock(r, d, v) {
     const rd = reading(r, v);
     if (!rd && !has(d.fv)) return '';
@@ -70,6 +88,7 @@
         ${hasM ? U.panel('The four ratios', '% from each ratio\'s own long-run mean · dotted: their average', '<div class="chart" id="cs-m"></div>') : U.panel('Real price and trend', 'index, latest = 100', '<div class="chart" id="cs-t"></div>')}</div>
       <div class="g g2">${hasM ? U.panel('Real price and trend', 'index, latest = 100', '<div class="chart" id="cs-t"></div>') : ''}${U.panel('Rates', '%', '<div class="chart" id="cs-r"></div>')}${hasM ? '' : U.panel('Inflation', 'CPI, % on a year earlier', '<div class="chart" id="cs-i"></div>')}</div>
       ${modelBlock(r, d, v)}
+      ${riskBlock(r)}
       <div class="g g3">${has(d.credit_gap) ? U.panel('Credit-to-GDP gap', 'points (BIS)', '<div class="chart short" id="cs-c"></div>') : ''}${has(d.dsr) ? U.panel('Debt service ratio', `% of income (${esc(r.dsr_kind || 'BIS')})`, '<div class="chart short" id="cs-d"></div>') : ''}
         ${has(d.unemp) ? U.panel('Unemployment', '%', '<div class="chart short" id="cs-u"></div>') : ''}${hasM && has(d.cpi_yoy) ? U.panel('Inflation', 'CPI, % on a year earlier', '<div class="chart short" id="cs-i"></div>') : ''}${has(d.hh_credit) ? U.panel('Household credit', '% of GDP', '<div class="chart short" id="cs-h"></div>') : ''}${has(d.rti) ? U.panel('Rent to income', '% from its own mean · the renter\'s burden', '<div class="chart short" id="cs-ri"></div>') : ''}</div>
       ${mapped.length > 1 ? `<section class="pnl"><div class="pnl-h"><h2>Cities in ${esc(r.name)}: map</h2><span class="hs">${mapped.length} cities · click a city</span></div>
@@ -142,7 +161,7 @@
       ]) +
       (vk && has(vk.prem) ? `<div class="g g2">${U.panel('Premium to country', `% from its own mean · lines at ±1 and ±2 standard deviations (${fmt.fx(vk.prem_sd, 1)} pts)`, '<div class="chart" id="cy-p"></div>')}
         ${U.panel('Real price and trend', 'index, latest = 100', '<div class="chart" id="cy-t"></div>')}</div>` : '') +
-      cityLend(R, CR, v) +
+      cityLend(R, CR, v) + (R ? riskBlock(R) : "") +
       `<div id="cy-x"></div><div id="cy-d"></div><div id="cy-m"></div>` +
       (R.long_used ? `<p class="note">The current series is too short to value on its own, so the premium, trend and changes above use the city's longer published history: ${esc(R.long_used)}.</p>` : '') +
       (R.annual ? `<p class="note caveat"><b>Annual source.</b> This city is published once or twice a year. The quarters between published points lie on a straight line, so one-year changes are real but volatility, beta and the premium z-score are smoother than a quarterly series would give.</p>` : '') +
